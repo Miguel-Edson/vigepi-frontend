@@ -6,15 +6,61 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Cores Principais VIGEPI */
+  --color-primary: #73B5AA;
+  --color-primary-dark: #348D7E;
+  
+  /* Fundos e Superfícies */
+  --color-background: #E3E3E3;
+  --color-surface: #ffffff;
+  
+  /* Textos */
+  --color-foreground: #333333;
+  --color-muted: #6b7280;
+
+  /* Fonte padrão */
+  --font-sans: var(--font-roboto);
+}
+
+@utility text-display {
+  font-size: 3rem; 
+  font-weight: 900;
+  color: var(--color-primary-dark);
+}
+
+@utility text-page-title {              /* Para o título verde nas telas (ex: "Sistema de Monitoramento...") */
+  font-size: 1.25rem; 
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+@utility text-tabela-texto {            /* Para os cabeçalhos das tabelas (Última att, Nascimento, Nome) */
+  font-size: 0.875rem; 
+  font-weight: 400;
+  color: #525252;
+}
+
+@utility text-tabela-titulo {           /* Para as linhas comuns da tabela e textos em geral */
+  font-size: 0.875rem; 
+  font-weight: 700;
+  color: #171717;
+}
+
+@utility text-form-label {              /* Para os rótulos pequenos dos inputs (ex: C.P.F *, Senha *) */
+  font-size: 0.75rem; 
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+@utility text-section-title {           /* Para os títulos de seções dentro das fichas (ex: "Dados Gerais") */
+  font-size: 1rem; 
+  font-weight: 500;
+  color: var(--color-primary);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #F3F3F3; 
     --foreground: #ededed;
   }
 }
@@ -22,5 +68,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
