@@ -60,7 +60,7 @@ export default function LoginPage() {
 
           {/* Textos de Boas Vindas */}
           <div className="text-center space-y-2">
-            <h2 className="text-xl font-bold text-gray-800">Seja Bem-Vindo(a)!</h2>
+            <h2 className="text-xl font-bold text-gray-800">Seja Bem-Vindo(a).</h2>
             <p className="text-sm text-gray-400">
               Insira suas credenciais para acessar a plataforma.
             </p>
@@ -93,7 +93,7 @@ export default function LoginPage() {
               <input 
                 id="senha"
                 type="password"
-                placeholder="Inserir senha ..."
+                placeholder="Inserir senha"
                 {...register("senha")}
                 className={`w-full h-10 px-3 text-sm border rounded-md outline-none transition-all placeholder:text-gray-300 text-gray-700 
                   ${errors.senha ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary"}`}
