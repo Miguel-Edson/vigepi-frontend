@@ -52,7 +52,7 @@ export default function LoginPage() {
           
           {/* Logo VIGEPI */}
           <div className="text-center">
-            <h1 className="text-display tracking-tight text-primary-dark">VIGEPI</h1>
+            <h1 className="text-display tracking-tight text-primary-dark">VIGEP</h1>
             <p className="text-sm font-medium text-primary -mt-1">
               (Vigilância Epidemiológica)
             </p>
