@@ -44,12 +44,12 @@ const novaFichaSchema = z.object({
 
 type NovaFichaForm = z.infer<typeof novaFichaSchema>;
 
-interface ModalNovoPacienteProps {
+interface ModalNewPatientProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function ModalNovoPaciente({ isOpen, onClose }: ModalNovoPacienteProps) {
+export function ModalNewPatient({ isOpen, onClose }: ModalNewPatientProps) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<NovaFichaForm>({
     resolver: zodResolver(novaFichaSchema),
   });
