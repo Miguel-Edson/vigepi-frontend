@@ -1,22 +1,31 @@
 "use client"; // Obrigatório para o Hook Form e Zod funcionarem
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { authService } from '@/services/authService';
+
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { normalizeCPF } from "@/utils/formatters";
 
-
-//Esquema de validação com Zod
+// Esquema de validação com Zod
 const loginSchema = z.object({
   cpf: z.string().min(14, "CPF incompleto"),
-  senha: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
+  password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  // 2. Inicializando o formulário
+  const router = useRouter();
+  
+  // Estados para controle de feedback da API
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Inicializando o formulário
   const {
     register,
     handleSubmit,
@@ -25,14 +34,42 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  // 3. Função que será chamada ao clicar em "Acessar Plataforma"
-  const onSubmit = (data: LoginForm) => {
-    console.log("Dados do formulário válidos:", data);
+  // Função chamada ao enviar o formulário
+  const onSubmit = async (data: LoginForm) => {
+    setLoading(true);
+    setApiError(null);
+
+    try {
+      // Dica: A maioria das APIs espera o CPF limpo (apenas números). 
+      // Se a sua API aceitar com pontuação, basta trocar `cleanCpf` por `data.cpf`
+      const cleanCpf = data.cpf.replace(/\D/g, '');
+
+      const response = await authService.login({
+        cpf: cleanCpf,
+        password: data.password,
+      });
+
+      // Salva o token retornado pela API
+      if (response?.token) {
+        localStorage.setItem('token', response.token);
+      }
+
+      // Redireciona para a página principal (ajuste a rota se for diferente)
+      router.push('/pacientes');
+    } catch (error: any) {
+      console.error("Erro na autenticação:", error);
+      setApiError(
+        error?.message || "Falha ao acessar a plataforma. Verifique suas credenciais."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <main className="flex min-h-screen bg-surface">
 
+      {/* --- COLUNA ESQUERDA: IMAGEM --- */}
       <div className="relative hidden lg:block w-full">
         <Image
           src="/images/wallpaper.jpg" 
@@ -41,7 +78,7 @@ export default function LoginPage() {
           className="object-cover"
           priority
         />
-        {/* Overlay com a cor primária da VIGEPI e 60% de opacidade para dar o tom esverdeado */}
+        {/* Overlay com a cor primária da VIGEPI */}
         <div className="absolute inset-0 bg-primary/80 mix-blend-multiply" />
       </div>
 
@@ -51,11 +88,14 @@ export default function LoginPage() {
         <div className="flex flex-col w-full max-w-sm gap-10">
           
           {/* Logo VIGEPI */}
-          <div className="text-center">
-            <h1 className="text-display tracking-tight text-primary-dark">VIGEP</h1>
-            <p className="text-sm font-medium text-primary -mt-1">
-              (Vigilância Epidemiológica)
-            </p>
+          <div className="text-center mx-auto">
+            <Image 
+              src="/images/SIMOS_logo.svg" 
+              alt="PET-Saúde" 
+              width={300} 
+              height={300} 
+              className="h-20 w-auto object-contain" 
+            />
           </div>
 
           {/* Textos de Boas Vindas */}
@@ -69,6 +109,14 @@ export default function LoginPage() {
           {/* Formulário */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             
+            {/* Mensagem de Erro da API */}
+            {apiError && (
+              <div className="p-3 text-xs font-medium text-red-700 bg-red-100 border border-red-200 rounded-md text-center">
+                {apiError}
+              </div>
+            )}
+
+            {/* Campo CPF */}
             <div className="space-y-1.5">
               <label htmlFor="cpf" className="text-form-label font-bold pl-2">C.P.F *</label>
               <input 
@@ -76,36 +124,49 @@ export default function LoginPage() {
                 type="text"
                 maxLength={14}
                 placeholder="000.000.000-00"
+                disabled={loading}
                 {...register("cpf", {
                   onChange: (e) => {
                     e.target.value = normalizeCPF(e.target.value);
                   },
                 })}
                 className={`w-full h-10 px-3 text-sm border rounded-md outline-none transition-all placeholder:text-gray-300 text-gray-700 
-                  ${errors.cpf ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary"}`}
+                  ${errors.cpf ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary"}
+                  ${loading ? "bg-gray-100 cursor-not-allowed" : ""}`}
               />
-              {/* Mensagem de erro */}
               {errors.cpf && <span className="text-xs text-red-500 pl-2">{errors.cpf.message}</span>}
             </div>
 
+            {/* Campo Senha */}
             <div className="space-y-1.5">
               <label htmlFor="senha" className="text-form-label font-bold pl-2">Senha *</label>
               <input 
                 id="senha"
                 type="password"
                 placeholder="Inserir senha"
-                {...register("senha")}
+                disabled={loading}
+                {...register("password")}
                 className={`w-full h-10 px-3 text-sm border rounded-md outline-none transition-all placeholder:text-gray-300 text-gray-700 
-                  ${errors.senha ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary"}`}
+                  ${errors.password ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary"}
+                  ${loading ? "bg-gray-100 cursor-not-allowed" : ""}`}
               />
-              {errors.senha && <span className="text-xs text-red-500 pl-2">{errors.senha.message}</span>}
+              {errors.password && <span className="text-xs text-red-500 pl-2">{errors.password.message}</span>}
             </div>
 
+            {/* Botão Submit */}
             <button 
               type="submit"
-              className="w-full h-10 mt-2 text-sm font-medium text-white transition-colors rounded-md bg-primary-dark hover:bg-[#2c7a6c]"
+              disabled={loading}
+              className="w-full h-10 mt-2 text-sm font-medium text-white transition-colors rounded-md bg-primary-dark hover:bg-[#2c7a6c] disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Acessar Plataforma
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Acessando...
+                </>
+              ) : (
+                "Acessar Plataforma"
+              )}
             </button>
           </form>
 
