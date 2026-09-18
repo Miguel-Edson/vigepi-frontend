@@ -25,9 +25,42 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
+<<<<<<< Updated upstream
   // 3. Função que será chamada ao clicar em "Acessar Plataforma"
   const onSubmit = (data: LoginForm) => {
     console.log("Dados do formulário válidos:", data);
+=======
+  // Função chamada ao enviar o formulário
+  const onSubmit = async (data: LoginForm) => {
+    setLoading(true);
+    setApiError(null);
+
+    try {
+      // Dica: A maioria das APIs espera o CPF limpo (apenas números). 
+      // Se a sua API aceitar com pontuação, basta trocar `cleanCpf` por `data.cpf`
+      const cleanCpf = data.cpf.replace(/\D/g, '');
+
+      const response = await authService.login({
+        cpf: cleanCpf,
+        password: data.password,
+      });
+
+      // Salva o token retornado pela API
+      if (response?.token) {
+        localStorage.setItem('token', response.token);
+      }
+
+      // Redireciona para a página principal (ajuste a rota se for diferente)
+      router.push('/pacientes');
+    } catch (error: unknown) {
+      console.error("Erro na autenticação:", error);
+      setApiError(
+        error?.message || "Falha ao acessar a plataforma. Verifique suas credenciais."
+      );
+    } finally {
+      setLoading(false);
+    }
+>>>>>>> Stashed changes
   };
 
   return (
