@@ -50,7 +50,7 @@ interface ModalNewPatientProps {
 }
 
 export function ModalNewPatient({ isOpen, onClose }: ModalNewPatientProps) {
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<NovaFichaForm>({
+  const { register, control, handleSubmit, reset, formState: { errors } } = useForm<NovaFichaForm>({
     resolver: zodResolver(novaFichaSchema),
   });
 
@@ -73,6 +73,7 @@ export function ModalNewPatient({ isOpen, onClose }: ModalNewPatientProps) {
         </div>
 
         {/* Corpo do Formulário */}
+        {/* Corpo do Formulário */}
         <div className="p-6 space-y-10">
           
           {/* --- SEÇÃO 1: NOTIFICAÇÃO INDIVIDUAL --- */}
@@ -88,16 +89,16 @@ export function ModalNewPatient({ isOpen, onClose }: ModalNewPatientProps) {
               {/* Linha 2 */}
               <div className="col-span-12 md:col-span-2 flex gap-2">
                  <InputField label="Idade *" placeholder="xx" register={register("idade")} error={errors.idade?.message} className="flex-1" />
-                 <SelectField label="&nbsp;" register={register("unidadeIdade")} options={[{label: 'Anos', value: 'anos'}, {label: 'Meses', value: 'meses'}]} className="w-24" />
+                 <SelectField label="&nbsp;" name="unidadeIdade" control={control} options={[{label: 'Anos', value: 'anos'}, {label: 'Meses', value: 'meses'}]} className="w-24" />
               </div>
               <RadioField label="Sexo *" register={register("sexo")} error={errors.sexo?.message} options={[{label: 'Masculino', value: 'M'}, {label: 'Feminino', value: 'F'}, {label: 'Ignorado', value: 'I'}]} className="col-span-12 md:col-span-3" />
-              <SelectField label="Gestante" register={register("gestante")} options={[{label: '6 - Não se aplica', value: '6'}]} className="col-span-12 md:col-span-2" />
-              <SelectField label="Raça / Cor" register={register("racaCor")} options={[{label: 'Selecionar Raça / Cor', value: ''}]} className="col-span-12 md:col-span-2" />
+              <SelectField label="Gestante" name="gestante" control={control} options={[{label: '6 - Não se aplica', value: '6'}]} className="col-span-12 md:col-span-2" />
+              <SelectField label="Raça / Cor" name="racaCor" control={control} options={[{label: 'Selecionar Raça / Cor', value: ''}]} className="col-span-12 md:col-span-2" />
               <InputField label="CPF *" placeholder="xxx.xxx.xxx - xx" register={register("cpf")} error={errors.cpf?.message} className="col-span-12 md:col-span-3" />
               
               {/* Linha 3 */}
               <InputField label="Nome da mãe *" placeholder="Inserir nome..." register={register("nomeMae")} error={errors.nomeMae?.message} className="col-span-12 md:col-span-6" />
-              <SelectField label="Escolaridade *" register={register("escolaridade")} error={errors.escolaridade?.message} options={[{label: 'Selecionar Escolaridade', value: ''}]} className="col-span-12 md:col-span-6" />
+              <SelectField label="Escolaridade *" name="escolaridade" control={control} error={errors.escolaridade?.message} options={[{label: 'Selecionar Escolaridade', value: ''}]} className="col-span-12 md:col-span-6" />
             </div>
           </div>
 
@@ -128,7 +129,7 @@ export function ModalNewPatient({ isOpen, onClose }: ModalNewPatientProps) {
               <InputField label="CPF *" placeholder="xxx.xxx.xxx - xx" register={register("cpfResidencia")} error={errors.cpfResidencia?.message} className="col-span-12 md:col-span-3" />
 
               {/* Linha 4 */}
-              <SelectField label="Zona *" register={register("zona")} error={errors.zona?.message} options={[{label: 'Selecionar Zona', value: ''}]} className="col-span-12 md:col-span-4" />
+              <SelectField label="Zona *" name="zona" control={control} error={errors.zona?.message} options={[{label: 'Selecionar Zona', value: ''}]} className="col-span-12 md:col-span-4" />
               <InputField label="País (se residente fora do Brasil) *" placeholder="Inserir nome ..." register={register("pais")} error={errors.pais?.message} className="col-span-12 md:col-span-8" />
             </div>
           </div>
