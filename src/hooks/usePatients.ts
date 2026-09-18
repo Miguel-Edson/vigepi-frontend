@@ -5,27 +5,6 @@ import { recordService } from '@/services/recordService';
 import { PatientAPI } from '@/types/patient';
 import { RecordAPI } from '@/types/record';
 
-// Função auxiliar para pegar a ficha mais recente de cada paciente
-function getLatestRecordPerPatient(records: RecordAPI[]) {
-  const latestMap = new Map<string, RecordAPI>();
-
-  // Ordena por data decrescente (mais recente primeiro)
-  const sortedRecords = [...records].sort((a, b) => 
-    new Date(b.dataNotificacao).getTime() - new Date(a.dataNotificacao).getTime()
-  );
-
-  sortedRecords.forEach(record => {
-    // Lemos o ID de dentro do objeto aninhado 'patient' devolvido pelo backend
-    const idDoPaciente = record.patient?.id; 
-    
-    if (idDoPaciente && !latestMap.has(idDoPaciente)) {
-      latestMap.set(idDoPaciente, record);
-    }
-  });
-
-  return latestMap;
-}
-
 export function usePatients() {
   const [patients, setPatients] = useState<PatientAPI[]>([]);
   const [records, setRecords] = useState<RecordAPI[]>([]);
@@ -56,13 +35,5 @@ export function usePatients() {
     fetchData();
   }, [fetchData]);
 
-  return { 
-    patients, 
-    records,
-    // Exportamos o mapa já processado para a página consumir direto
-    latestRecordsMap: getLatestRecordPerPatient(records),
-    isLoading, 
-    error, 
-    refetch: fetchData 
-  };
+  return { patients, records, isLoading, error, refetch: fetchData };
 }

@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 "use client";
 
 import { useState, useEffect } from "react";
@@ -82,10 +80,19 @@ export default function PatientsPage() {
 
 
   return (
-    <div className="min-h-screen bg-background relative py-12">
-        
+    <div className="min-h-screen bg-background relative">
+      <header className="bg-primary-dark text-white px-8 py-4 flex justify-between items-center shadow-sm">
+        <div>
+          <h1 className="text-2xl font-bold tracking-wide">VIGEP</h1>
+          <p className="text-xs opacity-80">(Vigilância Epidemiológica)</p>
+        </div>
+      </header>
 
-      <main className="space-y-6 bg-white rounded-xl mx-12 pb-6">
+      <div className="bg-white px-8 py-2 border-b border-gray-200">
+        <h2 className="text-page-title">Sistema de Monitoramento de Sífilis em Sobral</h2>
+      </div>
+
+      <main className="space-y-6 bg-white rounded-xl m-12 pb-6">
         <div className="flex border-b border-gray-200 gap-2 overflow-x-auto">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -132,7 +139,7 @@ export default function PatientsPage() {
 
         <div className="shadow-sm border-t border-gray-200 p-4">
           {isLoading ? (
-            <div className="h-32 flex items-center justify-center text-sm text-gray-400">Carregando dados</div>
+            <div className="h-32 flex items-center justify-center text-sm text-gray-400">Loading patients data...</div>
           ) : error ? (
             <div className="h-32 flex items-center justify-center text-sm text-red-500">{error}</div>
           ) : tableData.length === 0 ? (
@@ -171,4 +178,3 @@ export default function PatientsPage() {
     </div>
   );
 }
->>>>>>> Stashed changes

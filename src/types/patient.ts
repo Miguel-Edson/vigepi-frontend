@@ -1,3 +1,12 @@
+export interface PatientAPI {
+  id: string;
+  nome: string;
+  dataNascimento: string; 
+  sexo: string;
+  cns: string;
+  cpf: string;
+}
+
 export interface CreatePatientDTO {
   nome: string;
   cpf: string;
@@ -23,11 +32,6 @@ export interface CreatePatientDTO {
   pais: string;
 }
 
-export interface PatientAPI extends CreatePatientDTO {
-  id: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
 // O Partial faz com que o UpdatePatientDTO tenha os mesmos campos do Create, 
 // mas todos eles viram opcionais (ex: nome?: string).
 export type UpdatePatientDTO = Partial<CreatePatientDTO>;

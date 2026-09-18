@@ -8,12 +8,4 @@ export const recordService = {
       method: 'GET',
     });
   },
-
-  async addObservation(recordId: string, texto: string): Promise<any> {
-    return apiFetch(`/record/${recordId}/observations`, {
-      method: 'POST',
-      body: JSON.stringify({ texto }),
-    });
-  },
-
 };
