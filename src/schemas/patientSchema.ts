@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { Raca, Escolaridade, Sexo, Gestante, ZonaResidencia } from "@/types/patient";
 
 export const novaFichaSchema = z.object({
   // Notificação Individual
@@ -7,12 +8,12 @@ export const novaFichaSchema = z.object({
   cns: z.string().min(1, "Obrigatório"),
   idade: z.string().min(1, "Obrigatório"),
   unidadeIdade: z.string().min(1, "Obrigatório"),
-  sexo: z.string().min(1, "Obrigatório"),
-  gestante: z.string().optional(),
-  raca: z.string().optional(),
+  sexo: z.enum(Sexo, { message: "Obrigatório" }),
+  gestante: z.enum(Gestante).optional(),
+  raca: z.enum(Raca).optional(),
   cpf: z.string().min(11, "Obrigatório"),
   nomeDaMae: z.string().min(3, "Obrigatório"),
-  escolaridade: z.string().min(1, "Obrigatório"),
+  escolaridade: z.enum(Escolaridade, { message: "Obrigatório" }),
   
   // Dados de Residência
   uf: z.string().min(2, "Obrigatório"),
@@ -30,7 +31,9 @@ export const novaFichaSchema = z.object({
   cep: z.string().min(8, "Obrigatório"),
   telefone: z.string().min(10, "Obrigatório"),
   cpfResidencia: z.string().min(11, "Obrigatório"), 
-  zona: z.string().min(1, "Obrigatório"),
+  
+  zona: z.enum(ZonaResidencia, { message: "Obrigatório" }),
+  
   pais: z.string().min(1, "Obrigatório"),
 });
 
