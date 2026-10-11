@@ -1,6 +1,18 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+import { publicPaths } from "@/config/routes"; 
 import Link from "next/link";
 import Image from "next/image";
+
 export function Navbar() {
+  const pathname = usePathname();
+
+  // Se a URL atual estiver na lista de rotas públicas (ex: /login), esconde a Navbar
+  if (publicPaths.includes(pathname)) {
+    return null;
+  }
+  
   return (
     <header className=" text-white shadow-md">
       <div className="bg-primary mx-auto px-12 py-4 flex justify-between items-center">
