@@ -2,47 +2,12 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { InputField } from "@/components/form/InputField";
 import { SelectField } from "@/components/form/SelectField";
-import { RadioField } from "@/components/form/RadioField"; // Importamos o novo componente
-
-// 1. Esquema de Validação com todos os campos da imagem
-const novaFichaSchema = z.object({
-  // Notificação Individual
-  nomePaciente: z.string().min(3, "Obrigatório"),
-  dataNascimento: z.string().min(10, "Obrigatório"),
-  cartaoSus: z.string().min(1, "Obrigatório"),
-  idade: z.string().min(1, "Obrigatório"),
-  unidadeIdade: z.string().min(1, "Obrigatório"),
-  sexo: z.string().min(1, "Obrigatório"),
-  gestante: z.string().optional(),
-  racaCor: z.string().optional(),
-  cpf: z.string().min(11, "Obrigatório"),
-  nomeMae: z.string().min(3, "Obrigatório"),
-  escolaridade: z.string().min(1, "Obrigatório"),
-  
-  // Dados de Residência
-  uf: z.string().min(2, "Obrigatório"),
-  municipio: z.string().min(1, "Obrigatório"),
-  ibge: z.string().optional(),
-  distrito: z.string().min(1, "Obrigatório"),
-  bairro: z.string().min(1, "Obrigatório"),
-  logradouro: z.string().min(1, "Obrigatório"),
-  codigo: z.string().min(1, "Obrigatório"),
-  numero: z.string().min(1, "Obrigatório"),
-  complemento: z.string().min(1, "Obrigatório"),
-  geoCampo1: z.string().min(1, "Obrigatório"),
-  geoCampo2: z.string().min(1, "Obrigatório"),
-  pontoReferencia: z.string().min(1, "Obrigatório"),
-  cep: z.string().min(8, "Obrigatório"),
-  telefone: z.string().min(10, "Obrigatório"),
-  cpfResidencia: z.string().min(11, "Obrigatório"),
-  zona: z.string().min(1, "Obrigatório"),
-  pais: z.string().min(1, "Obrigatório"),
-});
-
-type NovaFichaForm = z.infer<typeof novaFichaSchema>;
+import { RadioField } from "@/components/form/RadioField";
+// Importamos os Enums que você acabou de criar
+import { Raca, Escolaridade, Sexo, Gestante, ZonaResidencia } from "@/types/patient";
+import { novaFichaSchema, type NovaFichaForm } from "@/schemas/patientSchema";
 
 interface ModalNewPatientProps {
   isOpen: boolean;
@@ -54,8 +19,15 @@ export function ModalNewPatient({ isOpen, onClose }: ModalNewPatientProps) {
     resolver: zodResolver(novaFichaSchema),
   });
 
+  // 2. Geração automática das opções baseadas nos Enums do Backend
+  const sexoOptions = Object.values(Sexo).map(val => ({ label: val, value: val }));
+  const gestanteOptions = Object.values(Gestante).map(val => ({ label: val, value: val }));
+  const racaOptions = Object.values(Raca).map(val => ({ label: val, value: val }));
+  const escolaridadeOptions = Object.values(Escolaridade).map(val => ({ label: val, value: val }));
+  const zonaOptions = Object.values(ZonaResidencia).map(val => ({ label: val, value: val }));
+
   const onSubmit = (data: NovaFichaForm) => {
-    console.log("Ficha enviada:", data);
+    console.log("Ficha enviada para a API:", data);
     reset();
     onClose();
   };
@@ -73,7 +45,6 @@ export function ModalNewPatient({ isOpen, onClose }: ModalNewPatientProps) {
         </div>
 
         {/* Corpo do Formulário */}
-        {/* Corpo do Formulário */}
         <div className="p-6 space-y-10">
           
           {/* --- SEÇÃO 1: NOTIFICAÇÃO INDIVIDUAL --- */}
@@ -82,23 +53,24 @@ export function ModalNewPatient({ isOpen, onClose }: ModalNewPatientProps) {
             
             <div className="grid grid-cols-12 gap-4 mt-2">
               {/* Linha 1 */}
-              <InputField label="Nome do paciente *" placeholder="Inserir nome..." register={register("nomePaciente")} error={errors.nomePaciente?.message} className="col-span-12 md:col-span-6" />
+              <InputField label="Nome do paciente *" placeholder="Inserir nome..." register={register("nome")} error={errors.nome?.message} className="col-span-12 md:col-span-6" />
               <InputField label="Data de Nascimento *" placeholder="xxxxxx" register={register("dataNascimento")} error={errors.dataNascimento?.message} className="col-span-12 md:col-span-3" />
-              <InputField label="Cartão do SUS *" placeholder="xxx.xxx.xxx - xx" register={register("cartaoSus")} error={errors.cartaoSus?.message} className="col-span-12 md:col-span-3" />
+              <InputField label="Cartão do SUS *" placeholder="xxx.xxx.xxx - xx" register={register("cns")} error={errors.cns?.message} className="col-span-12 md:col-span-3" />
               
               {/* Linha 2 */}
               <div className="col-span-12 md:col-span-2 flex gap-2">
                  <InputField label="Idade *" placeholder="xx" register={register("idade")} error={errors.idade?.message} className="flex-1" />
+                 {/* Unidade de Idade é local, então passamos as opções manualmente */}
                  <SelectField label="&nbsp;" name="unidadeIdade" control={control} options={[{label: 'Anos', value: 'anos'}, {label: 'Meses', value: 'meses'}]} className="w-24" />
               </div>
-              <RadioField label="Sexo *" register={register("sexo")} error={errors.sexo?.message} options={[{label: 'Masculino', value: 'M'}, {label: 'Feminino', value: 'F'}, {label: 'Ignorado', value: 'I'}]} className="col-span-12 md:col-span-3" />
-              <SelectField label="Gestante" name="gestante" control={control} options={[{label: '6 - Não se aplica', value: '6'}]} className="col-span-12 md:col-span-2" />
-              <SelectField label="Raça / Cor" name="racaCor" control={control} options={[{label: 'Selecionar Raça / Cor', value: ''}]} className="col-span-12 md:col-span-2" />
+              <RadioField label="Sexo *" register={register("sexo")} error={errors.sexo?.message} options={sexoOptions} className="col-span-12 md:col-span-3" />
+              <SelectField label="Gestante" name="gestante" control={control} options={gestanteOptions} placeholder="Selecione..." className="col-span-12 md:col-span-2" />
+              <SelectField label="Raça / Cor" name="raca" control={control} options={racaOptions} placeholder="Selecione..." className="col-span-12 md:col-span-2" />
               <InputField label="CPF *" placeholder="xxx.xxx.xxx - xx" register={register("cpf")} error={errors.cpf?.message} className="col-span-12 md:col-span-3" />
               
               {/* Linha 3 */}
-              <InputField label="Nome da mãe *" placeholder="Inserir nome..." register={register("nomeMae")} error={errors.nomeMae?.message} className="col-span-12 md:col-span-6" />
-              <SelectField label="Escolaridade *" name="escolaridade" control={control} error={errors.escolaridade?.message} options={[{label: 'Selecionar Escolaridade', value: ''}]} className="col-span-12 md:col-span-6" />
+              <InputField label="Nome da mãe *" placeholder="Inserir nome..." register={register("nomeDaMae")} error={errors.nomeDaMae?.message} className="col-span-12 md:col-span-6" />
+              <SelectField label="Escolaridade *" name="escolaridade" control={control} error={errors.escolaridade?.message} options={escolaridadeOptions} placeholder="Selecione..." className="col-span-12 md:col-span-6" />
             </div>
           </div>
 
@@ -118,18 +90,18 @@ export function ModalNewPatient({ isOpen, onClose }: ModalNewPatientProps) {
               <InputField label="Logradouro (rua, avenida,...) *" placeholder="Inserir ..." register={register("logradouro")} error={errors.logradouro?.message} className="col-span-12 md:col-span-4" />
               <InputField label="Código *" placeholder="xxxxxxxxxx" register={register("codigo")} error={errors.codigo?.message} className="col-span-12 md:col-span-2" />
               <InputField label="Número *" placeholder="xxxxxx" register={register("numero")} error={errors.numero?.message} className="col-span-12 md:col-span-2" />
-              <InputField label="Complemento (apto., casa...) *" placeholder="xxx.xxx.xxx - xx" register={register("complemento")} error={errors.complemento?.message} className="col-span-12 md:col-span-2" />
+              <InputField label="Complemento *" placeholder="xxx.xxx.xxx - xx" register={register("complemento")} error={errors.complemento?.message} className="col-span-12 md:col-span-2" />
               <InputField label="Geo Campo 1 *" placeholder="xxx.xxx.xxx - xx" register={register("geoCampo1")} error={errors.geoCampo1?.message} className="col-span-12 md:col-span-2" />
 
               {/* Linha 3 */}
               <InputField label="Geo Campo 2 *" placeholder="xxx.xxx.xxx - xx" register={register("geoCampo2")} error={errors.geoCampo2?.message} className="col-span-12 md:col-span-2" />
-              <InputField label="Ponto de Referência *" placeholder="xxxxxx" register={register("pontoReferencia")} error={errors.pontoReferencia?.message} className="col-span-12 md:col-span-3" />
+              <InputField label="Ponto de Referência *" placeholder="xxxxxx" register={register("pontoDeReferencia")} error={errors.pontoDeReferencia?.message} className="col-span-12 md:col-span-3" />
               <InputField label="CEP *" placeholder="xxx.xxx.xxx - xx" register={register("cep")} error={errors.cep?.message} className="col-span-12 md:col-span-2" />
               <InputField label="(DDD) Telefone *" placeholder="xxx.xxx.xxx - xx" register={register("telefone")} error={errors.telefone?.message} className="col-span-12 md:col-span-2" />
               <InputField label="CPF *" placeholder="xxx.xxx.xxx - xx" register={register("cpfResidencia")} error={errors.cpfResidencia?.message} className="col-span-12 md:col-span-3" />
 
               {/* Linha 4 */}
-              <SelectField label="Zona *" name="zona" control={control} error={errors.zona?.message} options={[{label: 'Selecionar Zona', value: ''}]} className="col-span-12 md:col-span-4" />
+              <SelectField label="Zona *" name="zona" control={control} error={errors.zona?.message} options={zonaOptions} placeholder="Selecione..." className="col-span-12 md:col-span-4" />
               <InputField label="País (se residente fora do Brasil) *" placeholder="Inserir nome ..." register={register("pais")} error={errors.pais?.message} className="col-span-12 md:col-span-8" />
             </div>
           </div>
