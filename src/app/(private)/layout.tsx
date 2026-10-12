@@ -1,3 +1,4 @@
+"use function";
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,17 +9,13 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Checa se o token existe
-    const token = localStorage.getItem("token"); // Ajuste o nome da chave se necessário
-
-    if (!token) {
-      setIsAuthenticated(false);
-    } else {
-      setIsAuthenticated(true);
-    }
+    const verifyToken = async () => {
+      const token = localStorage.getItem("token");
+      setIsAuthenticated(!!token);
+    };
+    verifyToken();
   }, []);
 
-  // Estado de loading inicial para evitar flashs na tela
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -27,12 +24,10 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
     );
   }
 
-  // Se não estiver logado, exibe a tela bonita de erro que acabamos de criar
   if (isAuthenticated === false) {
     return <UnauthorizedWarning />;
   }
 
-  // Se estiver logado, renderiza o sistema normalmente
   return (
     <div className="min-h-screen bg-gray-50">
       

@@ -7,10 +7,10 @@ import { patientService } from "@/modules/patients/services/patientService";
 import { recordService } from "@/modules/records/services/recordService";
 import { PatientAPI } from "@/modules/patients/types/patient";
 import { RecordAPI } from "@/modules/records/types/record";
-import { PatientHeader } from "./components/PatientHeader/PatientHeader";
-import { PatientDetailsCard } from "./components/PatientDetailsCard/PatientDetailsCard";
-import { PatientRecordsList } from "./components/PatientRecordsList/PatientRecordsList";
-import { PatientComments } from "./components/PatientComments/PatientComments";
+import { PatientHeader } from "../../../../modules/patients/components/profile/PatientHeader/PatientHeader";
+import { PatientDetailsCard } from "../../../../modules/patients/components/profile/PatientDetailsCard/PatientDetailsCard";
+import { PatientRecordsList } from "@/modules/patients/components/profile/PatientRecordsList/PatientRecordsList";
+import { PatientComments } from "../../../../modules/patients/components/profile/PatientComments/PatientComments";
 
 export default function DetalhesPacientePage() {
   const params = useParams();

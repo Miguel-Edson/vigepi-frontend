@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
-export default function FichaGestantePage() {
+export default function FichaGestante() {
   const params = useParams();
   const pacienteId = params.id as string;
 
