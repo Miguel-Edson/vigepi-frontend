@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SIMOS - Frontend
 
-## Getting Started
+Sistema de Monitoramento de Sífilis (Gestacional, Congênita e Adquirida), desenvolvido para a vigilância epidemiológica e controle em Unidades de Saúde (CSFs).
 
-First, run the development server:
+## 🚀 Tecnologias Utilizadas
+* **Framework:** Next.js (App Router)
+* **Linguagem:** TypeScript
+* **Estilização:** Tailwind CSS
+* **Formulários e Validação:** React Hook Form + Zod
+* **Arquitetura:** Modular / Domain-Driven Design (DDD) adaptado
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🏗️ Padrões de Arquitetura e Nomenclatura
+Para manter a escalabilidade do sistema, adotamos regras estritas de nomenclatura:
+1. **Rotas (URLs):** A pasta `src/app/` utiliza **Português** (ex: `/pacientes`, `/fichas`), pois reflete a URL final que o usuário acessa.
+2. **Código e Arquitetura:** Todo o restante (`modules`, `components`, variáveis, interfaces, hooks) utiliza **Inglês**.
+3. **Componentes React:** Utilizam o padrão *PascalCase* (ex: `ModalNewPatient.tsx`).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ⚙️ Como rodar o projeto localmente
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Clone o repositório**
+   \`\`\`bash
+   git clone <url-do-repositorio>
+   \`\`\`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Instale as dependências**
+   \`\`\`bash
+   npm install
+   \`\`\`
 
-## Learn More
+3. **Configuração de Variáveis de Ambiente**
+   Crie um arquivo `.env.local` na raiz do projeto e adicione a URL da sua API:
+   \`\`\`env
+   NEXT_PUBLIC_API_URL=http://localhost:3333 # Ou a porta onde seu backend está rodando
+   \`\`\`
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. **Inicie o servidor de desenvolvimento**
+   \`\`\`bash
+   npm run dev
+   \`\`\`
+   Acesse [http://localhost:3000](http://localhost:3000) no seu navegador.

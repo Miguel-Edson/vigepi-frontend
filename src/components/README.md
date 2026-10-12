@@ -1,13 +1,11 @@
-# 🧩 Components
+# 🧩 Componentes Genéricos (UI)
 
-Esta pasta armazena todos os componentes visuais do sistema. Para manter a organização, os componentes estão divididos em duas categorias principais.
+Esta pasta é reservada para componentes de UI "burros" (Dumb Components) e elementos de layout compartilhados por toda a aplicação.
 
-## Subpastas
-- `/ui`: Componentes "burros" e reutilizáveis. São elementos visuais isolados que não possuem lógica de negócios complexa.
-  - *Exemplos:* Botões, Inputs, Modais, Cards, Tabelas.
-- `/layout`: Componentes estruturais que compõem o esqueleto das páginas.
-  - *Exemplos:* Sidebar (Menu Lateral), Header (Cabeçalho), Footer.
+### O que DEVE morar aqui:
+* **UI:** Botões, Tabelas base, Modais base, Spinners de carregamento.
+* **Formulários:** Elementos de input (InputField, SelectField, RadioField).
+* **Layout:** Navbar, Sidebar, Footers.
 
-## Regras da Pasta
-- Os componentes devem receber dados via `props`.
-- Evite fazer chamadas à API (fetch) diretamente dentro dos componentes visuais. Deixe isso para as páginas (`page.tsx`) ou hooks.
+### O que NÃO deve morar aqui:
+* Lógicas de negócio específicas (ex: Um formulário de criação de paciente). Tudo que for acoplado a uma regra de negócio deve ir para a pasta `src/modules/<nome-do-modulo>/components`.

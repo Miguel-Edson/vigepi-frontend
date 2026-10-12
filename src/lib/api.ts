@@ -14,9 +14,21 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
     headers,
   });
 
+  if (response.status === 401) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token'); // Limpa o token vencido/inválido
+      window.location.href = '/login';  // Redireciona o usuário na hora
+    }
+    throw new Error('Sessão expirada. Por favor, faça login novamente.');
+  }
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Erro ao conectar com o servidor');
+  }
+
+  if (response.status === 204) {
+    return {} as T;
   }
 
   return response.json();

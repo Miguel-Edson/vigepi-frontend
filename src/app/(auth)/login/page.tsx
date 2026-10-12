@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/services/authService';
+import { authService } from '@/modules/auth/services/authService';
 
 import Image from "next/image";
 import { useForm } from "react-hook-form";
