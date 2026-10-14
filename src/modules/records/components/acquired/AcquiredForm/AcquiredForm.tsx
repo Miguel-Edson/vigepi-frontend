@@ -6,40 +6,70 @@ import Link from "next/link";
 import { recordService } from "@/modules/records/services/recordService";
 import { RecordAPI } from "@/modules/records/types/record";
 
-// Importação dos componentes modulares
-import { DadosGerais } from "../GeneralData/GeneralData";
-import { DetalhesClinicos } from "../ClinicalDetails/ClinicalDetails";
+// Importação dos componentes com os nomes padronizados em inglês
+import { GeneralData } from "../GeneralData/GeneralData";
+import { ClinicalDetails } from "../ClinicalDetails/ClinicalDetails";
+// import { LabAndTreatment } from "../LabAndTreatment/LabAndTreatment";
 
-export default function FichaAdquirida() {
+export function AcquiredForm() {
   const params = useParams();
   const pacienteId = params.id as string;
 
   const [activeTab, setActiveTab] = useState<"adquirida" | "acompanhamento" | "historico">("adquirida");
   const [ficha, setFicha] = useState<RecordAPI | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null); // Novo estado para tratar erros de API
 
   useEffect(() => {
     async function carregarFicha() {
       try {
-        const allRecords = await recordService.getAllRecords();
-        const fichaEncontrada = allRecords.find(
-          (r) => r.patient?.id === pacienteId && r.agravo === "Sífilis Adquirida"
+        setLoading(true);
+        setError(null);
+        
+        // IDEAL: Buscar apenas as fichas do paciente específico no backend!
+        // Se o backend ainda não tiver essa rota, crie-a no serviço depois.
+        const recordsDoPaciente = await recordService.getAllRecords(); 
+        
+        const fichaEncontrada = recordsDoPaciente.find(
+          (r) => r.agravo === "Sífilis Adquirida"
         );
+        
         setFicha(fichaEncontrada || null);
-      } catch (error) {
-        console.error("Erro ao carregar ficha adquirida:", error);
+      } catch (err) {
+        console.error("Erro ao carregar ficha adquirida:", err);
+        setError("Não foi possível carregar os dados da ficha. Tente novamente.");
       } finally {
         setLoading(false);
       }
     }
-    carregarFicha();
+    
+    if (pacienteId) {
+      carregarFicha();
+    }
   }, [pacienteId]);
 
-  if (loading) return <div className="p-12 text-center text-gray-500">Carregando ficha...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-12 text-center space-y-4">
+        <p className="text-red-500 font-medium">{error}</p>
+        <button onClick={() => window.location.reload()} className="text-primary underline text-sm">
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
   
   if (!ficha) return (
     <div className="p-12 text-center space-y-4">
-      <p className="text-red-500 font-medium">Ficha não encontrada.</p>
+      <p className="text-red-500 font-medium">Ficha de Sífilis Adquirida não encontrada para este paciente.</p>
       <Link href={`/pacientes/${pacienteId}`} className="text-primary underline text-sm">
         Voltar para o prontuário
       </Link>
@@ -67,16 +97,16 @@ export default function FichaAdquirida() {
               <span className="px-3 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-full border border-amber-200">
                 Status: {ficha.status}
               </span>
-              <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 cursor-pointer">
+              <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
                 Marcar como concluída
               </button>
             </div>
           </div>
-
+          <div className="">
           <div className="flex items-center gap-8 border-b border-gray-100">
             <button
               onClick={() => setActiveTab("adquirida")}
-              className={`pb-3 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+              className={`pb-3 text-sm font-semibold transition-colors border-b-2 ${
                 activeTab === "adquirida" ? "border-primary text-primary" : "border-transparent text-gray-400 hover:text-gray-600"
               }`}
             >
@@ -84,7 +114,7 @@ export default function FichaAdquirida() {
             </button>
             <button
               onClick={() => setActiveTab("acompanhamento")}
-              className={`pb-3 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+              className={`pb-3 text-sm font-semibold transition-colors border-b-2 ${
                 activeTab === "acompanhamento" ? "border-primary text-primary" : "border-transparent text-gray-400 hover:text-gray-600"
               }`}
             >
@@ -96,9 +126,9 @@ export default function FichaAdquirida() {
         {/* CONTEÚDO DA ABA ATIVA */}
         {activeTab === "adquirida" && (
           <div className="space-y-6">
-            <DadosGerais ficha={ficha} />
-            <DetalhesClinicos ficha={ficha} />
-            {/* <LaboratorioTratamento ficha={ficha} /> */}
+            <GeneralData ficha={ficha} />
+            <ClinicalDetails ficha={ficha} />
+            {/* <LabAndTreatment ficha={ficha} /> */}
           </div>
         )}
 
@@ -108,6 +138,7 @@ export default function FichaAdquirida() {
           </div>
         )}
 
+      </div>
       </div>
     </div>
   );

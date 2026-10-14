@@ -2,13 +2,13 @@
 
 import { RecordAPI } from "@/modules/records/types/record";
 
-interface DadosGeraisProps {
+interface GeneralDataProps {
   ficha: RecordAPI;
 }
 
-export function DadosGerais({ ficha }: DadosGeraisProps) {
+export function GeneralData({ ficha }: GeneralDataProps) {
   return (
-    <div className="border border-primary rounded-xl p-5 relative bg-white">
+    <div className="border border-primary rounded-xl p-5 relative bg-white shadow-sm">
       <h3 className="absolute -top-3 left-4 bg-white px-2 text-primary font-medium text-sm">
         Dados Gerais
       </h3>
@@ -18,20 +18,20 @@ export function DadosGerais({ ficha }: DadosGeraisProps) {
         <div className="col-span-12 md:col-span-6 space-y-1">
           <label className="text-xs text-gray-500 font-medium pl-1">Tipo de Notificação *</label>
           <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-            {ficha.tipoNotificacao || "Individual"}
+            {ficha.tipoNotificacao || "-"}
           </div>
         </div>
 
         <div className="col-span-12 md:col-span-6 space-y-1">
-          <label className="text-xs text-gray-500 font-medium pl-1">Agravo / doença *</label>
+          <label className="text-xs text-gray-500 font-medium pl-1">Agravo / Doença *</label>
           <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm font-bold text-gray-800 uppercase">
-            {ficha.agravo || "SÍFILIS ADQUIRIDA"}
+            {ficha.agravo || "-"}
           </div>
         </div>
 
         {/* Linha 2 */}
         <div className="col-span-12 md:col-span-3 space-y-1">
-          <label className="text-xs text-gray-500 font-medium pl-1">Código *</label>
+          <label className="text-xs text-gray-500 font-medium pl-1">Código (CID) *</label>
           <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
             {ficha.codeCid || "-"}
           </div>
@@ -81,8 +81,9 @@ export function DadosGerais({ ficha }: DadosGeraisProps) {
         </div>
 
         <div className="col-span-12 md:col-span-2 space-y-1">
-          <label className="text-xs text-gray-500 font-medium pl-1">Código *</label>
+          <label className="text-xs text-gray-500 font-medium pl-1">Cód. CNES *</label>
           <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
+            {/* Como ainda não existe CNES na API, usamos o codeUnidadeSaude temporariamente */}
             {ficha.codeUnidadeSaude || "-"}
           </div>
         </div>

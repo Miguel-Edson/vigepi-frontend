@@ -1,13 +1,23 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { RecordAPI } from "@/modules/records/types/record";
+import { authService } from "@/modules/auth/services/authService";
 
-interface DetalhesClinicosProps {
+interface ClinicalDetailsProps {
   ficha: RecordAPI;
 }
 
-export function DetalhesClinicos({ ficha }: DetalhesClinicosProps) {
-  const detalhes = ficha.detalhesAdquirida || {};
+export function ClinicalDetails({ ficha }: ClinicalDetailsProps) {
+  // 1. Criamos um estado para guardar se o utilizador é ADM
+  const [isAdministrador, setIsAdministrador] = useState(false);
+
+  // 2. Verificamos as credenciais assim que o componente carrega no ecrã
+  useEffect(() => {
+    setIsAdministrador(authService.isAdmin());
+  }, []);
+
+  const detalhes = ficha.detalhesAdquirida;
 
   return (
     <div className="space-y-8 mt-10">
@@ -23,7 +33,7 @@ export function DetalhesClinicos({ ficha }: DetalhesClinicosProps) {
       </div>
 
       {/* --- BLOCO 1: Antecedentes Clínicos e Epidemiológicos --- */}
-      <div className="border border-primary rounded-xl p-5 relative bg-white">
+      <div className="border border-primary rounded-xl p-5 relative bg-white shadow-sm">
         <h3 className="absolute -top-3 left-4 bg-white px-2 text-primary font-medium text-sm">
           Antecedentes Clínicos e Epidemiológicos
         </h3>
@@ -32,35 +42,35 @@ export function DetalhesClinicos({ ficha }: DetalhesClinicosProps) {
           <div className="col-span-12 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Ocupação *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.ocupacao || "-"}
+              {detalhes?.ocupacao || "-"}
             </div>
           </div>
 
           <div className="col-span-12 md:col-span-6 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Antecedente de Sífilis *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.antSifilis || "-"}
+              {detalhes?.antSifilis || "-"}
             </div>
           </div>
 
           <div className="col-span-12 md:col-span-6 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Se sim, tratamento realizado? *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.seSimTratRealizado || "-"}
+              {detalhes?.seSimTratRealizado || "-"}
             </div>
           </div>
 
           <div className="col-span-12 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Comportamento sexual *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.compSexual || "-"}
+              {detalhes?.compSexual || "-"}
             </div>
           </div>
         </div>
       </div>
 
       {/* --- BLOCO 2: Dados Laboratoriais --- */}
-      <div className="border border-primary rounded-xl p-5 relative bg-white">
+      <div className="border border-primary rounded-xl p-5 relative bg-white shadow-sm">
         <h3 className="absolute -top-3 left-4 bg-white px-2 text-primary font-medium text-sm">
           Dados Laboratoriais
         </h3>
@@ -69,35 +79,35 @@ export function DetalhesClinicos({ ficha }: DetalhesClinicosProps) {
           <div className="col-span-12 md:col-span-4 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Teste não treponêmico *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.testeNaoTreponico || "-"}
+              {detalhes?.testeNaoTreponico || "-"}
             </div>
           </div>
 
           <div className="col-span-12 md:col-span-4 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Título *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.titulo || "-"}
+              {detalhes?.titulo || "-"}
             </div>
           </div>
 
           <div className="col-span-12 md:col-span-4 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Data *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.data || "-"}
+              {detalhes?.data || "-"}
             </div>
           </div>
 
           <div className="col-span-12 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Teste treponêmico *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.testeTreponico || "-"}
+              {detalhes?.testeTreponico || "-"}
             </div>
           </div>
         </div>
       </div>
 
       {/* --- BLOCO 3: Tratamento / Encerramento --- */}
-      <div className="border border-primary rounded-xl p-5 relative bg-white">
+      <div className="border border-primary rounded-xl p-5 relative bg-white shadow-sm">
         <h3 className="absolute -top-3 left-4 bg-white px-2 text-primary font-medium text-sm">
           Tratamento / Encerramento
         </h3>
@@ -106,44 +116,72 @@ export function DetalhesClinicos({ ficha }: DetalhesClinicosProps) {
           <div className="col-span-12 md:col-span-8 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Esquema de tratamento prescrito *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.esquemaTratAdquirida || "-"}
+              {detalhes?.esquemaTratAdquirida || "-"}
             </div>
           </div>
 
           <div className="col-span-12 md:col-span-4 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Data de início do tratamento *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.dataInicioTrat || "-"}
+              {detalhes?.dataInicioTrat || "-"}
             </div>
           </div>
 
           <div className="col-span-12 md:col-span-6 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Classificação Clínica *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.classClinica || "-"}
+              {detalhes?.classClinica || "-"}
             </div>
           </div>
 
           <div className="col-span-12 md:col-span-6 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Classificação Final *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {detalhes.classFinal || "-"} {detalhes.classFinalOutro ? `(${detalhes.classFinalOutro})` : ""}
+              {detalhes?.classFinal || "-"} {detalhes?.classFinalOutro ? `(${detalhes.classFinalOutro})` : ""}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Botão de Salvar Alterações (Aparecerá quando implementarmos a edição) */}
-      <div className="flex justify-center mt-8">
-        <button className="flex items-center gap-2 px-6 py-2 border border-primary text-primary rounded-full font-medium hover:bg-primary/5 transition-colors cursor-pointer">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
-          </svg>
-          Salvar Alterações
-        </button>
-      </div>
+      {/* 3. O Botão Mágico: Só aparece se isAdministrador for TRUE */}
+      {isAdministrador && (
+        <div className="flex justify-center gap-4 mt-8">
+          
+          {/* Botão de Apagar */}
+          <button 
+            className="flex items-center gap-2 px-6 py-2 border border-red-500 text-red-500 rounded-full font-medium hover:bg-red-50 transition-colors cursor-pointer"
+            onClick={() => {
+              if(window.confirm("Tem certeza que deseja apagar esta ficha? Esta ação não pode ser desfeita.")) {
+                // Aqui chamaremos o recordService.remove(ficha.id) no futuro
+                console.log("Apagando ficha:", ficha.id);
+              }
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Apagar Ficha
+          </button>
+
+          {/* Botão de Editar */}
+          <button 
+            className="flex items-center gap-2 px-6 py-2 border border-primary text-primary rounded-full font-medium hover:bg-primary/5 transition-colors cursor-pointer"
+            onClick={() => {
+              // Aqui abriremos o Modal de Edição passando a ficha atual
+              console.log("Abrindo modal de edição para:", ficha.id);
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Editar Ficha
+          </button>
+
+        </div>
+      )}
 
     </div>
   );
