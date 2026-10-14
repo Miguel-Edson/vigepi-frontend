@@ -1,11 +1,8 @@
-# 📚 Lib (Bibliotecas e Configurações)
+# 📚 Configuração de Bibliotecas Globais
 
-Esta pasta é destinada à configuração de bibliotecas externas de terceiros utilizadas no projeto.
+Esta pasta contém as instâncias inicializadas e configuradas de bibliotecas externas utilizadas no projeto.
 
-## O que colocar aqui?
-- Instância e configuração do cliente HTTP (ex: `axios.ts`).
-- Configurações e utilitários do Tailwind CSS (ex: função `cn` para mesclar classes).
-- Configurações iniciais do React Hook Form + Zod.
-
-## Regras da Pasta
-- Se você instalou uma biblioteca pelo NPM e precisa exportar uma versão configurada dela para usar no resto do projeto, ela deve ficar aqui.
+### Exemplos de uso:
+* `api.ts`: Configuração central do cliente HTTP (Fetch/Axios) com a URL base da API, interceptadores de erros e injeção do Bearer Token.
+* `queryClient.ts`.
+* Instâncias de serviços de terceiros (ex: formatadores globais de PDF, bibliotecas de gráficos).
