@@ -6,8 +6,8 @@ export const novaFichaSchema = z.object({
   nome: z.string().min(3, "Obrigatório"),
   dataNascimento: z.string().min(10, "Obrigatório"),
   cns: z.string().min(1, "Obrigatório"),
-  idade: z.string().min(1, "Obrigatório"),
-  unidadeIdade: z.string().min(1, "Obrigatório"),
+  idade: z.string().optional(),
+  unidadeIdade: z.string().optional(), 
   sexo: z.enum(Sexo, { message: "Obrigatório" }),
   gestante: z.enum(Gestante).optional(),
   raca: z.enum(Raca).optional(),
@@ -25,12 +25,9 @@ export const novaFichaSchema = z.object({
   codigo: z.string().min(1, "Obrigatório"),
   numero: z.string().min(1, "Obrigatório"),
   complemento: z.string().min(1, "Obrigatório"),
-  geoCampo1: z.string().min(1, "Obrigatório"), 
-  geoCampo2: z.string().min(1, "Obrigatório"),
   pontoDeReferencia: z.string().min(1, "Obrigatório"), 
   cep: z.string().min(8, "Obrigatório"),
   telefone: z.string().min(10, "Obrigatório"),
-  cpfResidencia: z.string().min(11, "Obrigatório"), 
   
   zona: z.enum(ZonaResidencia, { message: "Obrigatório" }),
   

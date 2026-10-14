@@ -7,6 +7,7 @@ import { DataTable } from "@/components/ui/dataTable";
 import { ModalNewPatient } from "./ModalNewPatient"
 import { usePatients } from "@/modules/patients/hooks/usePatients";
 import { useRecords } from "@/modules/records/hooks/useRecords";
+import { patientService } from "../../services/patientService";
 
 // 1. Array base (sem as contagens, elas serão dinâmicas agora)
 const BASE_TABS = [
@@ -109,6 +110,37 @@ export function PatientListContainer() {
     });
   }, [formattedPatients, activeTab, searchQuery]);
 
+  // Função que vai pegar os dados do modal e mandar para o backend criar!
+  const handleCreatePatient = async (dadosNovos: NovaFichaForm) => {
+    try {
+      // 1. Limpeza dos dados (exatamente como na edição)
+      const { ibge, ...dadosValidos } = dadosNovos;
+      
+      const dadosTratados = {
+        ...dadosValidos,
+        cpf: dadosNovos.cpf?.replace(/\D/g, ''),
+        cns: dadosNovos.cns?.replace(/\D/g, ''),
+        cep: dadosNovos.cep?.replace(/\D/g, ''),
+        telefone: dadosNovos.telefone?.replace(/\D/g, ''),
+      };
+
+      // 2. Chama o POST no backend!
+      await patientService.create(dadosTratados);
+      
+      // 3. Sucesso! Fecha o modal e atualiza a tabela
+      setIsModalOpen(false);
+      
+      // Aqui você chama a função que busca os pacientes de novo para a tabela atualizar
+      // Ex: carregarPacientes(); ou setAtualizarTabela(!atualizarTabela);
+      alert("Paciente criado com sucesso!");
+
+    } catch (error: any) {
+      console.error("Erro ao criar paciente:", error);
+      // Se tentar criar repetido agora, o backend vai travar e mostrar isto!
+      alert(`Erro: ${error.message || "Verifique se o CPF já está cadastrado."}`);
+    }
+  };
+
   return (
     <main className="space-y-6 bg-white rounded-xl m-12 pb-6 shadow-sm border border-gray-100">
       
@@ -202,8 +234,9 @@ export function PatientListContainer() {
 
       {/* Modal */}
       <ModalNewPatient 
-        isOpen={isModalOpen} 
+        isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSaveAction={handleCreatePatient} // <--- A MÁGICA ACONTECE AQUI
       />
     </main>
   );
