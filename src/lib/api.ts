@@ -1,7 +1,8 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  // 1. Trocado para sessionStorage
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -16,8 +17,9 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 
   if (response.status === 401) {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('token'); // Limpa o token vencido/inválido
-      window.location.href = '/login';  // Redireciona o usuário na hora
+      sessionStorage.removeItem('token'); 
+      sessionStorage.removeItem('user');
+      window.location.href = '/login';  
     }
     throw new Error('Sessão expirada. Por favor, faça login novamente.');
   }

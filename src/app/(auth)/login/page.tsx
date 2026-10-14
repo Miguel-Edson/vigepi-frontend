@@ -40,26 +40,22 @@ export default function LoginPage() {
     setApiError(null);
 
     try {
-      // Dica: A maioria das APIs espera o CPF limpo (apenas números). 
-      // Se a sua API aceitar com pontuação, basta trocar `cleanCpf` por `data.cpf`
+      // Limpa a pontuação do CPF (apenas números) para enviar para a API
       const cleanCpf = data.cpf.replace(/\D/g, '');
 
-      const response = await authService.login({
+      // O nosso novo authService lida com o fetch e com o armazenamento do localStorage (token e user)
+      await authService.login({
         cpf: cleanCpf,
-        password: data.password,
+        password: data.password, // Atenção: o seu backend espera 'senha' ou 'password'? No DTO do NestJS estava LoginDto. Ajuste se for necessário.
       });
 
-      // Salva o token retornado pela API
-      if (response?.token) {
-        localStorage.setItem('token', response.token);
-      }
-
-      // Redireciona para a página principal (ajuste a rota se for diferente)
+      // Se não houver erro, a promessa resolve e redireciona para a página principal
       router.push('/pacientes');
     } catch (error: any) {
       console.error("Erro na autenticação:", error);
+      // O authService atira uma exceção com a mensagem de erro que podemos mostrar ao utilizador
       setApiError(
-        error?.message || "Falha ao acessar a plataforma. Verifique suas credenciais."
+        error?.message || "Falha ao aceder à plataforma. Verifique as suas credenciais."
       );
     } finally {
       setLoading(false);
@@ -73,7 +69,7 @@ export default function LoginPage() {
       <div className="relative hidden lg:block w-full">
         <Image
           src="/images/wallpaper.jpg" 
-          alt="Profissional de saúde segurando a mão de um paciente"
+          alt="Profissional de saúde a segurar a mão de um paciente"
           fill
           className="object-cover"
           priority
@@ -91,18 +87,18 @@ export default function LoginPage() {
           <div className="text-center mx-auto">
             <Image 
               src="/images/SIMOS_logo.svg" 
-              alt="PET-Saúde" 
+              alt="Logo SIMOS" 
               width={300} 
               height={300} 
               className="h-20 w-auto object-contain" 
             />
           </div>
 
-          {/* Textos de Boas Vindas */}
+          {/* Textos de Boas-Vindas */}
           <div className="text-center space-y-2">
             <h2 className="text-xl font-bold text-gray-800">Seja Bem-Vindo(a).</h2>
             <p className="text-sm text-gray-400">
-              Insira suas credenciais para acessar a plataforma.
+              Insira as suas credenciais para aceder à plataforma.
             </p>
           </div>
 
@@ -157,7 +153,7 @@ export default function LoginPage() {
             <button 
               type="submit"
               disabled={loading}
-              className="w-full h-10 mt-2 text-sm font-medium text-white transition-colors rounded-md bg-primary-dark hover:bg-[#2c7a6c] disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full h-10 mt-2 text-sm font-medium text-white transition-colors rounded-md bg-primary-dark hover:bg-[#2c7a6c] disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -187,7 +183,7 @@ export default function LoginPage() {
               className="h-20 w-auto object-contain" 
             />
             <Image 
-              src="/images/logo-prefeitura.png" 
+              src="/images/logo-prefeitura2.png" 
               alt="Prefeitura de Sobral" 
               width={300} 
               height={300} 

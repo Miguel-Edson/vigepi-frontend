@@ -38,11 +38,11 @@ export function UnauthorizedWarning() {
         </p>
 
         <Link 
-          href="/login" 
-          className="flex items-center justify-center w-full py-3 px-4 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-all active:scale-95 shadow-sm hover:shadow-md"
-        >
-          Fazer Login
-        </Link>
+  href="/login" 
+  className="flex items-center justify-center w-full py-3 px-4 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-all active:scale-95 shadow-sm hover:shadow-md"
+>
+  Fazer Login
+</Link>
       </div>
       
     </div>

@@ -1,13 +1,16 @@
-export interface LoginCredentials {
+export interface LoginDTO {
   cpf: string;
   password: string;
 }
 
-export interface LoginResponse {
+export interface UserAPI {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+}
+
+export interface LoginResponseAPI {
   token: string;
-  user?: {
-    id: string;
-    nome: string;
-    email: string;
-  };
+  user?: UserAPI;
 }

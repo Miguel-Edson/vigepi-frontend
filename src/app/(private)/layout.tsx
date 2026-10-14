@@ -1,4 +1,3 @@
-"use function";
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,7 +9,7 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     const verifyToken = async () => {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       setIsAuthenticated(!!token);
     };
     verifyToken();
