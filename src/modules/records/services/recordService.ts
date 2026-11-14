@@ -1,7 +1,7 @@
 import { apiFetch } from '@/lib/api';
 // Ajuste os imports dos DTOs conforme o que você tem no seu arquivo de types
 import { RecordAPI, CreateRecordDTO, UpdateRecordDTO, AddObservationDTO } from '../types/record'; 
-
+import { MonitoramentoGestanteAPI, CreateMonitoramentoDTO } from "@/modules/records/types/monitoring";
 export const recordService = {
   
   // 1. POST: Criar ficha de notificação (Requer ADM)
@@ -58,4 +58,61 @@ export const recordService = {
       body: JSON.stringify(data),
     });
   },
+
+  // ==========================================================================
+  // ROTAS DE MONITORAMENTO (ACOMPANHAMENTO)
+  // ==========================================================================
+
+  /**
+   * 1. GET: Listar todos os monitoramentos de uma ficha específica
+   * Swagger: GET /records/{tipo}/{fichaId}/monitoramentos
+   */
+  async getMonitoramentosByRecordId(tipo: string, fichaId: string): Promise<MonitoramentoGestanteAPI[]> {
+    return apiFetch<MonitoramentoGestanteAPI[]>(`/records/${tipo}/${fichaId}/monitoramentos`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * 2. POST: Criar um novo registro de monitoramento para a ficha
+   * Swagger: POST /records/{tipo}/{fichaId}/monitoramentos
+   */
+  async createMonitoramento(tipo: string, fichaId: string, data: CreateMonitoramentoDTO): Promise<MonitoramentoGestanteAPI> {
+    return apiFetch<MonitoramentoGestanteAPI>(`/records/${tipo}/${fichaId}/monitoramentos`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * 3. GET: Detalhar um monitoramento específico pelo seu ID
+   * Swagger: GET /monitoramentos/{id}
+   */
+  async getMonitoramentoById(id: string): Promise<MonitoramentoGestanteAPI> {
+    return apiFetch<MonitoramentoGestanteAPI>(`/monitoramentos/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * 4. PATCH: Atualizar os dados de um monitoramento específico
+   * Swagger: PATCH /monitoramentos/{id}
+   */
+  async updateMonitoramento(id: string, data: Partial<CreateMonitoramentoDTO>): Promise<MonitoramentoGestanteAPI> {
+    return apiFetch<MonitoramentoGestanteAPI>(`/monitoramentos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * 5. DELETE: Remover um monitoramento (Soft Delete)
+   * Swagger: DELETE /monitoramentos/{id}
+   */
+  async deleteMonitoramento(id: string): Promise<void> {
+    return apiFetch<void>(`/monitoramentos/${id}`, {
+      method: 'DELETE',
+    });
+  }
 };
+

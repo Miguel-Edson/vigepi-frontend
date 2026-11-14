@@ -10,7 +10,7 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "VIGEPI",
+  title: "SIMOS",
   description: "Sistema de monitoramento de sífilis",
 };
 

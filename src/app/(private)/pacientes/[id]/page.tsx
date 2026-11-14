@@ -17,6 +17,10 @@ import { PatientComments } from "@/modules/patients/components/profile/PatientCo
 import { ModalNewPatient } from "@/modules/patients/components/list/ModalNewPatient";
 import { NovaFichaForm } from "@/modules/patients/schemas/patientSchema";
 
+// Importações dos Modais
+import { ModalRecordGestacional } from "@/modules/records/components/pregnant/ModalRecordGestacional/ModalRecordGestacional";
+import { ModalRecordCongenita } from "@/modules/records/components/congenital/ModalRecordCongenita/ModalRecordCongenita";
+
 export default function DetalhesPacientePage() {
   const params = useParams();
   const pacienteId = params.id as string;
@@ -27,6 +31,39 @@ export default function DetalhesPacientePage() {
 
   // Estado para controlar a abertura do modal de edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isGestacionalOpen, setIsGestacionalOpen] = useState(false);
+  const [isCongenitaOpen, setIsCongenitaOpen] = useState(false);
+  const [isAdquiridaOpen, setIsAdquiridaOpen] = useState(false);
+
+  const handleCreateRecord = async (dadosDaFicha: any) => {
+    try {
+      // 1. Opcional: Limpar dados se necessário (ex: tirar formatações de CEP, etc)
+      // Se não precisar, pode enviar direto.
+      
+      // 2. Chamar o serviço de records para criar (ajuste conforme o nome do seu serviço)
+      await recordService.create(dadosDaFicha);
+      console.log("Ficha a ser enviada para a API:", dadosDaFicha);
+      
+      if (dadosDaFicha.agravo === "Sífilis Gestacional") {
+        await patientService.update(pacienteId, { 
+          gestante: "Sim" 
+        } as any);
+      }
+
+      // 3. Fechar os modais
+      setIsGestacionalOpen(false);
+      setIsCongenitaOpen(false);
+      setIsAdquiridaOpen(false);
+      
+      // 4. Atualizar a lista de fichas do paciente na tela
+      refetchDadosDoPacienteOuFichas();
+      
+      alert("Ficha criada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao criar ficha:", error);
+      alert("Ocorreu um erro ao salvar a ficha.");
+    }
+  };
 
   // Colocamos o fetch dentro do useCallback para podermos chamar várias vezes
   const carregarDados = useCallback(async () => {
@@ -64,7 +101,6 @@ export default function DetalhesPacientePage() {
       // 1. Separamos o "lixo" do frontend dos dados que realmente vão para a API
       const { 
         idade,
-        unidadeIdade,
         ibge,
         cpf,
         cns,
@@ -114,12 +150,16 @@ export default function DetalhesPacientePage() {
     <div className="min-h-screen bg-gray-50 pb-12 p-6">
       <div className="max-w-6xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-100">
         
-        {/* Chamando o componente do topo */}
+        {/* Chamando o componente do topo com a lógica do Dropdown */}
         <PatientHeader 
           patientName={paciente?.nome || ""} 
           patientId={pacienteId}
-          onEditClick={() => setIsEditModalOpen(true)} // Abre o Modal!
-          onAddRecordClick={() => alert("Abrir opções de nova ficha")}
+          onEditClick={() => setIsEditModalOpen(true)} 
+          onAddRecordClick={(tipo) => {
+            if (tipo === 'GESTACIONAL') setIsGestacionalOpen(true);
+            if (tipo === 'CONGENITA') setIsCongenitaOpen(true);
+            if (tipo === 'ADQUIRIDA') setIsAdquiridaOpen(true);
+          }}
         />
 
         <PatientDetailsCard patient={paciente} />
@@ -128,14 +168,36 @@ export default function DetalhesPacientePage() {
         
       </div>
 
-      {/* O nosso Modal conectado (invisível até ser chamado) */}
+      {/* Modal de Edição do Paciente */}
       <ModalNewPatient 
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        // O Partial permite passar o objeto paciente diretamente. O Hook Form pega só o que precisa.
         patientData={paciente as any} 
         onSaveAction={handleUpdatePatient}
       />
+
+      {/* NOVO: Modal da Ficha Gestacional */}
+      <ModalRecordGestacional 
+        isOpen={isGestacionalOpen}
+        onClose={() => setIsGestacionalOpen(false)}
+        patientId={pacienteId}
+        onSaveAction={handleCreateRecord}
+      />
+
+      {/* Deixo já comentados os próximos para quando você os terminar! */}
+      {/* <ModalRecordCongenita 
+        isOpen={isCongenitaOpen}
+        onClose={() => setIsCongenitaOpen(false)}
+        patientId={pacienteId}
+        onSaveAction={handleCreateRecord}
+      /> */}
+      
+      {/* <ModalRecordAdquirida 
+        isOpen={isAdquiridaOpen}
+        onClose={() => setIsAdquiridaOpen(false)}
+        patientId={pacienteId}
+        onSaveAction={handleCreateRecord}
+      /> */}
 
     </div>
   );

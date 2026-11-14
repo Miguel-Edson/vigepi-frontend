@@ -60,13 +60,7 @@ useEffect(() => {
         // Tratamos os dados antes de os injetar no formulário
         reset({
           ...patientData,
-          
-          // 1. Resolve o "Invalid input": Força a idade a ser string para agradar ao Zod
-          idade: patientData.idade ? String(patientData.idade) : "",
-          
-          // 2. Resolve o Select vazio: Se não vier unidadeIdade da API, assume "anos"
-          unidadeIdade: patientData.unidadeIdade || "anos",
-          
+
           // (Bónus) Prevenção: Garante que a data vem no formato YYYY-MM-DD para o HTML não quebrar
           dataNascimento: patientData.dataNascimento 
             ? patientData.dataNascimento.split('T')[0] 
@@ -74,9 +68,7 @@ useEffect(() => {
         });
       } else {
         // Se for criar um novo paciente, limpa tudo mas já deixa "anos" pré-selecionado
-        reset({
-          unidadeIdade: "anos"
-        });
+
       }
     }
   }, [isOpen, patientData, reset]);
