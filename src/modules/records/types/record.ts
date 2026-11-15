@@ -254,6 +254,8 @@ export interface CongenitalDetailsAPI {
 export interface PregnantDetailsAPI {
   id?: string;
   ocupacao?: string;
+  /** AAAA-MM-DD. Enviar null para limpar. A DPP é calculada pelo backend (DUM + 280 dias). */
+  dataUltimaMenstruacao?: string | null;
   ufPreNatal?: string;
   municipioPreNatal?: string;
   codigoIbgePreNatal?: string;
@@ -270,6 +272,13 @@ export interface PregnantDetailsAPI {
   esquemaTratPresParceiro?: EsquemaTratamentoGestanteEnum;
   motivoNaoTratParceiro?: MotivoNaoTratParceiroEnum;
   outroMotivoNaoTratParceiro?: string;
+}
+
+/** Calculado pelo backend a partir da DUM; null/ausente se não há DUM ou se ela é futura. */
+export interface StatusGestacional {
+  dpp: string; // AAAA-MM-DD
+  idadeGestacionalSemanas: number;
+  idadeGestacionalDias: number;
 }
 
 /** Ficha Geral de Notificação (Mapeia a entidade Record) */
@@ -298,6 +307,9 @@ export interface RecordAPI {
   detalhesAdquirida?: AcquiredDetailsAPI;
   detalhesCongenita?: CongenitalDetailsAPI;
   detalhesGestante?: PregnantDetailsAPI;
+
+  /** Só em fichas gestacionais: DPP e idade gestacional estimadas pela DUM. */
+  statusGestacional?: StatusGestacional | null;
 }
 
 // ============================================================================

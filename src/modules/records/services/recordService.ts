@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { apiFetch, ApiError } from '@/lib/api';
 // Ajuste os imports dos DTOs conforme o que você tem no seu arquivo de types
 import { RecordAPI, CreateRecordDTO, UpdateRecordDTO, AddObservationDTO } from '../types/record'; 
 import { MonitoramentoGestanteAPI, CreateMonitoramentoDTO } from "@/modules/records/types/monitoring";
@@ -19,14 +19,11 @@ export const recordService = {
     });
   },
 
-  // 3. GET (TRUQUE FRONTEND): Buscar fichas e filtrar por paciente
+// 3. GET: Buscar as fichas de UM paciente (o filtro acontece no servidor)
   async getRecordsByPatientId(patientId: string): Promise<RecordAPI[]> {
-    const allRecords = await apiFetch<RecordAPI[]>('/record/all', {
+    return apiFetch<RecordAPI[]>(`/record/patient/${patientId}`, {
       method: 'GET',
     });
-    
-    // Filtra localmente. Certifique-se de que a estrutura do retorno possui patient.id
-    return allRecords.filter((record) => record.patient?.id === patientId);
   },
 
   // 4. GET: Buscar ficha por ID

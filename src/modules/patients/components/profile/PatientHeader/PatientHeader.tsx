@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { authService } from "@/modules/auth/services/authService";
+import { GESTATIONAL_ONLY_FEMALE_MESSAGE } from "@/modules/patients/rules";
 
 interface PatientHeaderProps {
   patientName: string;
@@ -10,13 +11,16 @@ interface PatientHeaderProps {
   onEditClick?: () => void;
   // Agora a função recebe qual tipo de ficha queremos criar!
   onAddRecordClick?: (tipo: 'ADQUIRIDA' | 'GESTACIONAL' | 'CONGENITA') => void;
+  // Ficha gestacional só para pacientes do sexo feminino (regra em modules/patients/rules.ts)
+  canAddGestational?: boolean;
 }
 
 export function PatientHeader({ 
   patientName, 
   patientId,
   onEditClick, 
-  onAddRecordClick 
+  onAddRecordClick,
+  canAddGestational = false
 }: PatientHeaderProps) {
   const [isAdministrador, setIsAdministrador] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -93,10 +97,21 @@ export function PatientHeader({
                     Sífilis Adquirida
                   </button>
                   <button 
-                    onClick={() => { onAddRecordClick?.('GESTACIONAL'); setIsDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-primary/5 hover:text-primary rounded-lg transition-colors cursor-pointer"
+                    onClick={() => {
+                      if (!canAddGestational) return;
+                      onAddRecordClick?.('GESTACIONAL');
+                      setIsDropdownOpen(false);
+                    }}
+                    disabled={!canAddGestational}
+                    title={canAddGestational ? undefined : GESTATIONAL_ONLY_FEMALE_MESSAGE}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-lg transition-colors ${
+                      canAddGestational
+                        ? "text-gray-700 hover:bg-primary/5 hover:text-primary cursor-pointer"
+                        : "text-gray-300 cursor-not-allowed"
+                    }`}
                   >
                     Sífilis Gestacional
+                    
                   </button>
                   <button 
                     onClick={() => { onAddRecordClick?.('CONGENITA'); setIsDropdownOpen(false); }}

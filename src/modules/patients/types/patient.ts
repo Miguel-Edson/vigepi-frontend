@@ -108,4 +108,6 @@ export interface PatientTable {
   bairro: string;
   tipoFicha: string;
   status: string;
+  statusDetalhe?: string; // ex.: "Próxima dose (2ª): 21/11/2026"
+  gestante: boolean; // campo do PACIENTE (não da ficha): alimenta a aba "Gestantes"
 }

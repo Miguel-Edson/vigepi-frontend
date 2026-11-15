@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InputField } from "@/components/form/InputField";
 import { SelectField } from "@/components/form/SelectField";
 import { RadioField } from "@/components/form/RadioField";
+import { FormSubmitError } from "@/components/form/FormSubmitError";
 import { Raca, Escolaridade, Sexo, Gestante, ZonaResidencia } from "@/modules/patients/types/patient";
 import { novaFichaSchema, type NovaFichaForm } from "@/modules/patients/schemas/patientSchema";
 
@@ -14,7 +15,7 @@ interface ModalNewPatientProps {
   isOpen: boolean;
   onClose: () => void;
   patientData?: Partial<NovaFichaForm> | null; 
-  onSaveAction?: (data: NovaFichaForm) => void; 
+  onSaveAction?: (data: NovaFichaForm) => void | Promise<void>;
 }
 
 export function ModalNewPatient({ isOpen, onClose, patientData, onSaveAction }: ModalNewPatientProps) {
@@ -46,9 +47,15 @@ const handleAutoFill = () => {
       pais: "Brasil"
     });
   };
-  const { register, control, handleSubmit, reset, formState: { errors } } = useForm<NovaFichaForm>({
+  const { register, control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<NovaFichaForm>({
     resolver: zodResolver(novaFichaSchema),
   });
+
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) setSubmitError(null);
+  }, [isOpen]);
 
   // Variável que diz ao componente se estamos a criar ou a editar
   const isEditing = !!patientData;
@@ -79,14 +86,20 @@ useEffect(() => {
   const escolaridadeOptions = Object.values(Escolaridade).map(val => ({ label: val, value: val }));
   const zonaOptions = Object.values(ZonaResidencia).map(val => ({ label: val, value: val }));
 
-const onSubmit = (data: NovaFichaForm) => {
-    if (onSaveAction) {
-      onSaveAction(data);
-    } else {
-      console.log(isEditing ? "Atualizando paciente:" : "Novo paciente criado:", data);
+const onSubmit = async (data: NovaFichaForm) => {
+    setSubmitError(null);
+    try {
+      if (onSaveAction) {
+        // Só limpa e fecha DEPOIS que a API confirmar; se falhar, o formulário continua preenchido
+        await onSaveAction(data);
+      } else {
+        console.log(isEditing ? "Atualizando paciente:" : "Novo paciente criado:", data);
+      }
+      reset();
+      onClose();
+    } catch (error) {
+      setSubmitError(error instanceof Error && error.message ? error.message : "Não foi possível salvar. Os dados digitados foram mantidos, tente novamente.");
     }
-    reset();
-    onClose();
   };
 
   // NOVA FUNÇÃO: Vai apanhar os erros silenciosos do Zod
@@ -125,7 +138,7 @@ const onSubmit = (data: NovaFichaForm) => {
               
               {/* Linha 2 (Sem a idade, redistribuímos as 12 colunas) */}
               <RadioField label="Sexo *" register={register("sexo")} error={errors.sexo?.message} options={sexoOptions} className="col-span-12 md:col-span-4" />
-              <SelectField label="Gestante" name="gestante" control={control} options={gestanteOptions} placeholder="Selecione..." className="col-span-12 md:col-span-2" />
+              <SelectField label="Gestante" name="gestante" control={control} options={gestanteOptions} error={errors.gestante?.message} placeholder="Selecione..." className="col-span-12 md:col-span-2" />
               <SelectField label="Raça / Cor" name="raca" control={control} options={racaOptions} placeholder="Selecione..." className="col-span-12 md:col-span-2" />
               <InputField label="CPF *" placeholder="xxx.xxx.xxx - xx" register={register("cpf")} error={errors.cpf?.message} className="col-span-12 md:col-span-4" />
               
@@ -162,6 +175,8 @@ const onSubmit = (data: NovaFichaForm) => {
 
         </div>
 
+        <FormSubmitError message={submitError} />
+
         {/* Rodapé Dinâmico */}
         <div className="p-6 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-xl sticky bottom-0 z-10">
           
@@ -187,8 +202,8 @@ const onSubmit = (data: NovaFichaForm) => {
             <button type="button" onClick={() => { reset(); onClose(); }} className="px-4 py-2 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer font-medium">
               Cancelar
             </button>
-            <button type="submit" className="px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-primary transition-colors cursor-pointer font-medium">
-              {isEditing ? "Salvar Alterações" : "Salvar e Continuar"}
+            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-primary transition-colors cursor-pointer font-medium disabled:opacity-60 disabled:cursor-not-allowed">
+              {isSubmitting ? "Salvando..." : isEditing ? "Salvar Alterações" : "Salvar e Continuar"}
             </button>
           </div>
           

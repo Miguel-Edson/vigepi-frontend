@@ -7,20 +7,34 @@ import { DataTable } from "@/components/ui/dataTable";
 import { ModalNewPatient } from "./ModalNewPatient"
 import { usePatients } from "@/modules/patients/hooks/usePatients";
 import { useRecords } from "@/modules/records/hooks/useRecords";
+import { useTreatmentSummaries } from "@/modules/records/hooks/useTreatmentSummaries";
+import { getListStatus, STATUS_EM_TRATAMENTO } from "@/modules/records/monitoring/listStatus";
+import { agravoToTipo, hasTreatments } from "@/modules/records/monitoring/config";
 import { patientService } from "../../services/patientService";
+import type { NovaFichaForm } from "@/modules/patients/schemas/patientSchema";
+import { Gestante } from "@/modules/patients/types/patient";
 
 // 1. Array base (sem as contagens, elas serão dinâmicas agora)
 const BASE_TABS = [
   { id: "todas", label: "Todas" },
+  { id: STATUS_EM_TRATAMENTO, label: "Em Tratamento" },
+  { id: "Dose Atrasada", label: "Dose Atrasada" },
   { id: "Tratamento Finalizado", label: "Tratamento Finalizado" },
-  { id: "Dose Atrasada", label: "Em Tratamento" },
   { id: "Descontinuado", label: "Descontinuado" },
   { id: "Aguardando Exame", label: "Aguardando Exame" }, 
-  { id: "DPP", label: "Gestantes" }, 
+  { id: "gestantes", label: "Gestantes" }, // filtra por paciente.gestante, não pelo status da ficha
   { id: "sem-ficha", label: "Sem Ficha (Pendentes)" }, 
 ];
 
 
+
+// Decide se uma linha pertence a uma aba. "gestantes" usa o cadastro do paciente;
+// as demais comparam o status da ficha.
+function matchesTab(patient: PatientTable, tabId: string): boolean {
+  if (tabId === "todas") return true;
+  if (tabId === "gestantes") return patient.gestante;
+  return patient.status === tabId;
+}
 
 export function PatientListContainer() {
   const [activeTab, setActiveTab] = useState("todas");
@@ -42,6 +56,9 @@ export function PatientListContainer() {
     error: errorRecords 
   } = useRecords();
 
+  // Doses de todas as fichas: com elas o status vira "Em Tratamento" + data da próxima dose
+  const dosesByRecord = useTreatmentSummaries();
+
   const isLoading = loadingPatients || loadingRecords;
   const error = errorPatients || errorRecords;
   const refetch = refetchPatients;
@@ -58,6 +75,13 @@ export function PatientListContainer() {
       );
 
       if (patientRecord) {
+        const tipo = agravoToTipo(patientRecord.agravo);
+        const listStatus = getListStatus(
+          patientRecord.status || "Dose Atrasada", // Assumindo default se vazio
+          tipo && hasTreatments(tipo) ? tipo : undefined,
+          dosesByRecord[patientRecord.id]
+        );
+
         return {
           id: patient.id,
           nome: patient.nome,
@@ -67,7 +91,9 @@ export function PatientListContainer() {
           unidade: patientRecord.codeUnidadeSaude || "Não informada",
           bairro: patient.bairro || "Não informado", 
           tipoFicha: patientRecord.agravo || "N/A",
-          status: patientRecord.status || "Dose Atrasada" // Assumindo default se vazio
+          status: listStatus.key,
+          statusDetalhe: listStatus.detail,
+          gestante: patient.gestante === Gestante.SIM
         };
       } else {
         return {
@@ -79,11 +105,12 @@ export function PatientListContainer() {
           unidade: "Pendente",
           bairro: patient.bairro || "Não informado", 
           tipoFicha: "Nenhuma ficha criada",
-          status: "sem-ficha" 
+          status: "sem-ficha",
+          gestante: patient.gestante === Gestante.SIM
         };
       }
     });
-  }, [patients, records]);
+  }, [patients, records, dosesByRecord]);
 
   // 3. Calcula dinamicamente as contagens com base na lista formatada
   const tabsWithCounts = useMemo(() => {
@@ -93,7 +120,7 @@ export function PatientListContainer() {
       }
       return { 
         ...tab, 
-        count: formattedPatients.filter(p => p.status === tab.id).length 
+        count: formattedPatients.filter(p => matchesTab(p, tab.id)).length 
       };
     });
   }, [formattedPatients]);
@@ -101,44 +128,37 @@ export function PatientListContainer() {
   // 4. Aplica os filtros de aba e barra de pesquisa
   const tableData = useMemo(() => {
     return formattedPatients.filter((patient) => {
-      const matchesTab = activeTab === "todas" || patient.status === activeTab;
+      const isInTab = matchesTab(patient, activeTab);
       const matchesSearch = 
         patient.nome.toLowerCase().includes(searchQuery.toLowerCase()) || 
         patient.cpf.includes(searchQuery);
       
-      return matchesTab && matchesSearch;
+      return isInTab && matchesSearch;
     });
   }, [formattedPatients, activeTab, searchQuery]);
 
   // Função que vai pegar os dados do modal e mandar para o backend criar!
+  // Não captura erros de propósito: se a API falhar, o ModalNewPatient mostra a mensagem
+  // dentro do formulário e mantém tudo que foi digitado.
   const handleCreatePatient = async (dadosNovos: NovaFichaForm) => {
-    try {
-      // 1. Limpeza dos dados (exatamente como na edição)
-      const { ibge, ...dadosValidos } = dadosNovos;
-      
-      const dadosTratados = {
-        ...dadosValidos,
-        cpf: dadosNovos.cpf?.replace(/\D/g, ''),
-        cns: dadosNovos.cns?.replace(/\D/g, ''),
-        cep: dadosNovos.cep?.replace(/\D/g, ''),
-        telefone: dadosNovos.telefone?.replace(/\D/g, ''),
-      };
+    // 1. Limpeza dos dados (exatamente como na edição)
+    const { ibge, ...dadosValidos } = dadosNovos;
 
-      // 2. Chama o POST no backend!
-      await patientService.create(dadosTratados);
-      
-      // 3. Sucesso! Fecha o modal e atualiza a tabela
-      setIsModalOpen(false);
-      
-      // Aqui você chama a função que busca os pacientes de novo para a tabela atualizar
-      // Ex: carregarPacientes(); ou setAtualizarTabela(!atualizarTabela);
-      alert("Paciente criado com sucesso!");
+    const dadosTratados = {
+      ...dadosValidos,
+      cpf: dadosNovos.cpf?.replace(/\D/g, ''),
+      cns: dadosNovos.cns?.replace(/\D/g, ''),
+      cep: dadosNovos.cep?.replace(/\D/g, ''),
+      telefone: dadosNovos.telefone?.replace(/\D/g, ''),
+    };
 
-    } catch (error: any) {
-      console.error("Erro ao criar paciente:", error);
-      // Se tentar criar repetido agora, o backend vai travar e mostrar isto!
-      alert(`Erro: ${error.message || "Verifique se o CPF já está cadastrado."}`);
-    }
+    // 2. Chama o POST no backend
+    await patientService.create(dadosTratados);
+
+    // 3. Sucesso: fecha o modal e atualiza a tabela
+    setIsModalOpen(false);
+    await refetch();
+    alert("Paciente criado com sucesso!");
   };
 
   return (

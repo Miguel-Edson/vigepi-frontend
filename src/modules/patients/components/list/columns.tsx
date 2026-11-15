@@ -14,6 +14,7 @@ export type PacienteTabela = {
   bairro: string;
   tipoFicha: string;
   status: string; // Depois vamos transformar isso para lidar com as bolinhas coloridas
+  statusDetalhe?: string;
 };
 
 // Definição das Colunas
@@ -50,6 +51,15 @@ export const columns: ColumnDef<PacienteTabela>[] = [
   {
     accessorKey: "status",
     header: "Status",
+    cell: ({ row }) => {
+      const { status, statusDetalhe } = row.original;
+      return (
+        <div>
+          <span className="font-medium">{status === "sem-ficha" ? "Sem ficha" : status}</span>
+          {statusDetalhe && <span className="block text-xs text-gray-500">{statusDetalhe}</span>}
+        </div>
+      );
+    },
   },
   {
     // A coluna de ações geralmente não tem um 'accessorKey' atrelado a um dado específico do banco

@@ -1,5 +1,22 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+// O NestJS devolve `message` como string OU como array (erros do class-validator)
+function extractMessage(data: { message?: string | string[] }, fallback: string): string {
+  const msg = data?.message;
+  if (Array.isArray(msg)) return msg.join('\n');
+  return msg || fallback;
+}
+
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   // 1. Trocado para sessionStorage
   const token = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
@@ -26,7 +43,18 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Erro ao conectar com o servidor');
+
+    if (response.status === 403) {
+      throw new ApiError(
+        403,
+        extractMessage(errorData, 'Você não tem permissão para realizar esta ação.')
+      );
+    }
+
+    throw new ApiError(
+      response.status,
+      extractMessage(errorData, 'Erro ao conectar com o servidor')
+    );
   }
 
   if (response.status === 204) {

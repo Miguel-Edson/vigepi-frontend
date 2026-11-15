@@ -30,6 +30,9 @@ export const novaFichaSchema = z.object({
   zona: z.enum(ZonaResidencia, { message: "Obrigatório" }),
   
   pais: z.string().min(1, "Obrigatório"),
+  }).refine((dados) => !(dados.gestante === Gestante.SIM && dados.sexo !== Sexo.FEMININO), {
+  path: ["gestante"],
+  message: "Apenas para sexo feminino",
 });
 
 export type NovaFichaForm = z.infer<typeof novaFichaSchema>;
