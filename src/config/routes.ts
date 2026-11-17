@@ -6,11 +6,16 @@ export const APP_ROUTES = {
   },
   private: {
     home: '/',
+    dashboard: '/dashboard',
+    admin: {
+      usuarios: '/admin/usuarios',
+      unidades: '/admin/unidades',
+    },
     pacientes: {
       list: '/pacientes',
       detalhes: (id: string) => `/pacientes/${id}`,
       fichaAdquirida: (id: string) => `/pacientes/${id}/fichas/ficha-adquirida`,
-      fichaGestante: (id: string) => `/pacientes/${id}/fichas/ficha-gestante`,
+      fichaGestante: (id: string) => `/pacientes/${id}/fichas/ficha-gestacional`,
       fichaCongenita: (id: string) => `/pacientes/${id}/fichas/ficha-congenita`,
     }
   }

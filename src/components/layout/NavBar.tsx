@@ -1,13 +1,22 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { publicPaths } from "@/config/routes"; 
 import Link from "next/link";
 import Image from "next/image";
 import { authService } from "@/modules/auth/services/authService";
+import { SideMenu } from "./SideMenu";
 
 export function Navbar() {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+  // Ao navegar para outra página, o menu fecha
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   const handleLogout = () => {
     // Isto vai limpar o localStorage e forçar o redireccionamento para /login
@@ -24,9 +33,22 @@ export function Navbar() {
       <div className="bg-primary mx-auto px-12 py-4 flex justify-between items-center">
         
         <nav className="flex items-center gap-4 text-sm font-medium">
-          <Link href="/pacientes" className="hover:underline opacity-90 hover:opacity-100">
-            Menu Principal
-          </Link>
+          {/* Abre o menu lateral (Pacientes, Dashboard...) */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Abrir menu"
+            aria-expanded={menuOpen}
+            aria-controls="side-menu"
+            className="flex items-center gap-2 rounded-lg px-2 py-1 opacity-90 hover:opacity-100 hover:bg-white/15 transition cursor-pointer"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+            Menu
+          </button>
         </nav>
         <Link href="/pacientes" className="text-xl font-bold tracking-wider flex items-center gap-2">
           <Image 
@@ -53,8 +75,10 @@ export function Navbar() {
         
       </div>
       <div className="bg-white px-12">
-        <h2 className="text-base text-primary">Sistema de Monitoramento de Sífilis - Sobral</h2>
+        <h2 className="text-base text-primary">Sistema de Monitoramento de Sífilis em Sobral</h2>
       </div>
+
+      <SideMenu isOpen={menuOpen} onClose={closeMenu} />
     </header>
   );
 }
