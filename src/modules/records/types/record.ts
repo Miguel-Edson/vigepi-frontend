@@ -341,5 +341,14 @@ export interface UpdateRecordDTO extends Partial<CreateRecordDTO> {
 }
 
 export interface AddObservationDTO {
+  /** Nome do campo no backend (não é `text`). Obrigatório, máximo de 2000 caracteres. */
+  texto: string;
+}
+
+/** Observação clínica de uma ficha (imutável: não há edição nem exclusão). */
+export interface ObservationAPI {
+  id: string;
   text: string;
+  createdAt: string;
+  authorName?: string;
 }

@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { todayISO } from "@/utils/dates";
 
 import {
   // Gerais
@@ -204,6 +205,11 @@ export const recordGestacionalSchema = recordGeneralSchema.extend({
     esquemaTratPresParceiro: z.enum(enumToZod(EsquemaTratamentoGestanteEnum)).optional(),
     motivoNaoTratParceiro: z.enum(enumToZod(MotivoNaoTratParceiroEnum)).optional(),
     outroMotivoNaoTratParceiro: z.string().optional(),
+    // DUM: o backend calcula DPP e idade gestacional a partir dela (DUM futura é ignorada lá)
+    dataUltimaMenstruacao: z
+      .string()
+      .nullish()
+      .refine((value) => !value || value <= todayISO(), { message: "A DUM não pode ser futura" }),
   }),
 });
 
