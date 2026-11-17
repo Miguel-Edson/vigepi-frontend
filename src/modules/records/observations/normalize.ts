@@ -10,7 +10,9 @@ export function normalizeObservation(raw: unknown, index = 0): ObservationAPI | 
   if (raw === null || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
 
-  const text = str(o.text) ?? str(o.texto) ?? str(o.content) ?? str(o.observacao) ?? str(o.observation);
+  const text =
+    str(o.texto) ?? str(o.text) ?? str(o.content) ?? str(o.conteudo) ?? str(o.observacao) ??
+    str(o.observation) ?? str(o.comentario) ?? str(o.descricao) ?? str(o.mensagem);
   if (!text) return null;
 
   const author = (o.createdBy ?? o.criadoPor ?? o.author ?? o.autor ?? o.usuario ?? o.user) as unknown;
@@ -32,18 +34,32 @@ export function normalizeObservation(raw: unknown, index = 0): ObservationAPI | 
   };
 }
 
-/** Aceita uma lista direta ou embrulhada em { observations | data | items }. Mais recentes primeiro. */
+/** A lista "crua": aceita array direto ou embrulhado em { observations | observacoes | data | items | results }. */
+export function toRawList(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) return payload;
+  if (payload !== null && typeof payload === "object") {
+    const o = payload as Record<string, unknown>;
+    for (const key of ["observations", "observacoes", "observacoesClinicas", "data", "items", "results"]) {
+      if (Array.isArray(o[key])) return o[key] as unknown[];
+    }
+    const arrays = Object.values(o).filter(Array.isArray);
+    if (arrays.length === 1) return arrays[0] as unknown[]; // único campo que é lista
+  }
+  return [];
+}
+
+/** Dentro de uma ficha, acha a lista de observações pelo nome do campo (observations, observacoes, comentarios...). */
+export function findObservationList(record: unknown): unknown[] | null {
+  if (record === null || typeof record !== "object") return null;
+  for (const [key, value] of Object.entries(record as Record<string, unknown>)) {
+    if (/observ|coment|anota|^notas?$/i.test(key) && Array.isArray(value)) return value;
+  }
+  return null;
+}
+
+/** Mais recentes primeiro. */
 export function extractObservations(payload: unknown): ObservationAPI[] {
-  const wrapped =
-    payload !== null && typeof payload === "object" && !Array.isArray(payload)
-      ? ((payload as Record<string, unknown>).observations ??
-        (payload as Record<string, unknown>).data ??
-        (payload as Record<string, unknown>).items)
-      : payload;
-
-  if (!Array.isArray(wrapped)) return [];
-
-  return wrapped
+  return toRawList(payload)
     .map((item, index) => normalizeObservation(item, index))
     .filter((item): item is ObservationAPI => item !== null)
     .sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0));

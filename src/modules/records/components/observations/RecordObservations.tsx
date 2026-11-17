@@ -49,7 +49,7 @@ export function RecordObservations({ recordId, onAdded }: RecordObservationsProp
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
+    <div className="space-y-6">
       <div>
         <h2 className="text-lg font-bold text-gray-800">Observações Clínicas</h2>
         <p className="text-xs text-gray-500">
