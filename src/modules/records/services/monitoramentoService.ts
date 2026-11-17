@@ -39,7 +39,12 @@ export const monitoramentoService = {
     try {
       return await apiFetch<MonitoramentoResumo[]>("/monitoramentos/resumo", { method: "GET" });
     } catch (error) {
-      console.warn("[SIMOS] /monitoramentos/resumo indisponível; listagem usa o status da ficha.", error);
+      console.warn(
+        "[SIMOS] /monitoramentos/resumo indisponível; a listagem usa o status da ficha. " +
+          "Erro 500 aqui costuma significar que a rota ainda não existe no backend (o Nest a trata como " +
+          "GET /monitoramentos/:id e tenta ler 'resumo' como UUID) ou foi declarada DEPOIS do @Get(':id').",
+        error
+      );
       return [];
     }
   },

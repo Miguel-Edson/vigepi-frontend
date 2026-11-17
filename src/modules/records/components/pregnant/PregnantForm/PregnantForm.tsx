@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
@@ -25,6 +24,8 @@ import { recordToFormValues } from "@/modules/records/components/shared/formValu
 import { useRecordClosure } from "@/modules/records/hooks/useRecordClosure";
 import { formatGestationalAge } from "@/modules/records/monitoring/gestational";
 import { formatDate } from "@/utils/formatters";
+import { emptyToNull } from "@/utils/payload";
+import { RecordPageShell } from "@/modules/records/components/shared/RecordPageShell";
 import { RecordObservations } from "@/modules/records/components/observations/RecordObservations";
 
 interface PregnantFormProps {
@@ -32,8 +33,17 @@ interface PregnantFormProps {
   patientId: string;
 }
 
+type ActiveTab = "gestante" | "acompanhamento" | "observacoes" | "historico";
+
+const TABS = [
+  { id: "gestante", label: "Sífilis em Gestante" },
+  { id: "acompanhamento", label: "Acompanhamento" },
+  { id: "observacoes", label: "Observações" },
+  { id: "historico", label: "Histórico de Alterações" },
+];
+
 export default function FichaGestante({ recordId, patientId }: PregnantFormProps) {
-  const [activeTab, setActiveTab] = useState<"gestante" | "acompanhamento" | "observacoes" | "historico">("gestante");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("gestante");
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [fichaReal, setFichaReal] = useState<RecordAPI | null>(null);
@@ -83,21 +93,15 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
 
   const onSubmitUpdate = async (data: RecordGestacionalForm) => {
     try {
-      // DUM apagada vira null (é assim que a API limpa o campo)
-      const payload = {
-        ...data,
-        detalhesGestante: {
-          ...data.detalhesGestante,
-          dataUltimaMenstruacao: data.detalhesGestante?.dataUltimaMenstruacao || null,
-        },
-      };
-      await recordService.update(recordId, payload as any);
+      // Campo vazio vai como null: "" não é data/opção válida para a API (dava o erro "must be a valid
+      // ISO 8601 date string") e null é como a API apaga um valor, inclusive a DUM.
+      await recordService.update(recordId, emptyToNull(data) as any);
       await carregarFicha(true); // traz a DPP e a idade gestacional recalculadas pelo backend
       setIsEditing(false);
       alert("Ficha atualizada com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar ficha:", error);
-      alert("Erro ao salvar alterações.");
+      alert(error instanceof Error && error.message ? error.message : "Erro ao salvar alterações.");
     }
   };
 
@@ -112,81 +116,19 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      
-      {/* Cabeçalho de Navegação */}
-      <div>
-        <Link href={`/pacientes/${patientId}`} className="text-sm text-gray-400 hover:text-primary transition-colors">
-          ← Voltar para o Prontuário do Paciente
-        </Link>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
-          <h1 className="text-xl font-bold text-gray-800">
-            Ficha Epidemiológica <span className="text-primary font-normal">| N° SINAN: {fichaReal.numSinan}</span>
-          </h1>
-
-          <div className="flex items-center gap-3 flex-wrap">
-            <button 
-              type="button" 
-              onClick={() => setIsEditing(!isEditing)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
-            >
-              {isEditing ? "Cancelar Edição" : "Editar Informações"}
-            </button>
-            <RecordClosureButtons status={fichaReal.status} closure={closure} />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-8 border-b border-gray-100">
-          <button
-            type="button"
-            onClick={() => setActiveTab("gestante")}
-            className={`pb-3 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
-              activeTab === "gestante" 
-                ? "border-primary text-primary" 
-                : "border-transparent text-gray-400 hover:text-gray-600"
-            }`}
-          >
-            Sífilis em Gestante
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("acompanhamento")}
-            className={`pb-3 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
-              activeTab === "acompanhamento" 
-                ? "border-primary text-primary" 
-                : "border-transparent text-gray-400 hover:text-gray-600"
-            }`}
-          >
-            Acompanhamento
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("observacoes")}
-            className={`pb-3 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
-              activeTab === "observacoes" 
-                ? "border-primary text-primary" 
-                : "border-transparent text-gray-400 hover:text-gray-600"
-            }`}
-          >
-            Observações
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("historico")}
-            className={`pb-3 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
-              activeTab === "historico" 
-                ? "border-primary text-primary" 
-                : "border-transparent text-gray-400 hover:text-gray-600"
-            }`}
-          >
-            Histórico de Alterações
-          </button>
-        </div>
-      </div>
-
+    <RecordPageShell
+      patientId={patientId}
+      numSinan={fichaReal.numSinan}
+      isEditing={isEditing}
+      onToggleEdit={() => {
+        if (isEditing) carregarFicha(true); // cancelar: descarta o que foi digitado
+        setIsEditing(!isEditing);
+      }}
+      actions={<RecordClosureButtons status={fichaReal.status} closure={closure} />}
+      tabs={TABS}
+      activeTab={activeTab}
+      onTabChange={(id) => setActiveTab(id as ActiveTab)}
+    >
       {/* CONTEÚDO DA ABA: SÍFILIS EM GESTANTE */}
       {activeTab === "gestante" && (
         <form onSubmit={handleSubmit(onSubmitUpdate, onInvalid)} className="space-y-6">          
@@ -496,11 +438,11 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
 
       {/* ABA DE HISTÓRICO */}
       {activeTab === "historico" && (
-        <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500">
+        <div className="p-8 text-center text-gray-500">
           <h3 className="text-lg font-bold text-gray-800 mb-2">Histórico de Alterações</h3>
           <p className="text-sm">Registro de logs e modificações realizadas nesta ficha.</p>
         </div>
       )}
-    </div>
+    </RecordPageShell>
   );
 }

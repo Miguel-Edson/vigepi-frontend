@@ -1,7 +1,7 @@
 import { apiFetch, ApiError } from '@/lib/api';
 // Ajuste os imports dos DTOs conforme o que você tem no seu arquivo de types
 import { RecordAPI, CreateRecordDTO, UpdateRecordDTO, AddObservationDTO, ObservationAPI } from '../types/record'; 
-import { extractObservations } from '@/modules/records/observations/normalize';
+import { extractObservations, findObservationList, toRawList } from '@/modules/records/observations/normalize';
 import { MonitoramentoGestanteAPI, CreateMonitoramentoDTO } from "@/modules/records/types/monitoring";
 export const recordService = {
   
@@ -79,18 +79,32 @@ export const recordService = {
 
   // 7.1 GET: Listar as observações clínicas de uma ficha (mais recentes primeiro)
   async listObservations(id: string): Promise<ObservationAPI[]> {
+    let payload: unknown;
+
     try {
-      return extractObservations(await apiFetch<unknown>(`/record/${id}/observations`, { method: 'GET' }));
+      payload = await apiFetch<unknown>(`/record/${id}/observations`, { method: 'GET' });
     } catch (error) {
-      // Se a rota GET não existe no backend ("Cannot GET ..."), tenta as observações que
-      // vierem embutidas na própria ficha. Qualquer outro erro é repassado.
       const rotaInexistente =
         error instanceof ApiError && error.status === 404 && error.message.startsWith('Cannot GET');
       if (!rotaInexistente) throw error;
 
-      const record = await apiFetch<{ observations?: unknown }>(`/record/${id}`, { method: 'GET' });
-      return extractObservations(record?.observations);
+      // Sem rota GET própria: procura as observações dentro da própria ficha
+      const record = await apiFetch<unknown>(`/record/${id}`, { method: 'GET' });
+      const embedded = findObservationList(record);
+      if (!embedded) {
+        // Melhor avisar do que mostrar "nenhuma observação" quando, na verdade, não dá para ler.
+        throw new Error(
+          'Não foi possível listar as observações: o backend não tem a rota GET /record/{id}/observations e a ficha não traz as observações junto.'
+        );
+      }
+      payload = embedded;
     }
+
+    const observations = extractObservations(payload);
+    if (observations.length === 0 && toRawList(payload).length > 0) {
+      console.warn('[SIMOS] Observações recebidas, mas em um formato não reconhecido:', payload);
+    }
+    return observations;
   },
 
   // ==========================================================================

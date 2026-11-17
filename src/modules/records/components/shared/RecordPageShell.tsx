@@ -21,7 +21,10 @@ interface RecordPageShellProps {
   children: ReactNode;
 }
 
-/** Cabeçalho + abas das páginas de ficha (mesmo visual da ficha gestacional). */
+/**
+ * Moldura das 3 fichas (gestacional, adquirida e congênita): tudo dentro de UMA página branca
+ * sobre o fundo cinza, igual à ficha geral do paciente (cabeçalho + abas + conteúdo).
+ */
 export function RecordPageShell({
   patientId,
   numSinan,
@@ -34,14 +37,15 @@ export function RecordPageShell({
   children,
 }: RecordPageShellProps) {
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-4">
       <div>
         <Link href={`/pacientes/${patientId}`} className="text-sm text-gray-400 hover:text-primary transition-colors">
           ← Voltar para o Prontuário do Paciente
         </Link>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
+      {/* A "página" */}
+      <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
           <h1 className="text-xl font-bold text-gray-800">
             Ficha Epidemiológica <span className="text-primary font-normal">| N° SINAN: {numSinan}</span>
@@ -75,9 +79,9 @@ export function RecordPageShell({
             </button>
           ))}
         </div>
-      </div>
 
-      {children}
+        {children}
+      </div>
     </div>
   );
 }
