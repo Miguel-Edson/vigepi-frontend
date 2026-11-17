@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { InputField } from "@/components/form/InputField";
 import { SelectField } from "@/components/form/SelectField";
 import { FormSubmitError } from "@/components/form/FormSubmitError";
+import { omitEmpty } from "@/utils/payload";
 import { 
   recordGestacionalSchema, type RecordGestacionalForm, 
   ClassClinicaGestanteEnum, EsquemaTratamentoGestanteEnum, 
@@ -16,19 +17,10 @@ interface ModalRecordGestacionalProps {
   isOpen: boolean;
   onClose: () => void;
   patientId: string;
-  patientSex?: string;
   onSaveAction: (data: RecordGestacionalForm & { patientId: string }) => void | Promise<void>;
-  onUpdatePatientStatus?: (patientId: string, statusData: { gestante: string }) => void | Promise<void>; // Nova prop opcional para atualizar o status
 }
 
-export function ModalRecordGestacional({ 
-  isOpen, 
-  onClose, 
-  patientId, 
-  patientSex, 
-  onSaveAction,
-  onUpdatePatientStatus 
-}: ModalRecordGestacionalProps) {
+export function ModalRecordGestacional({ isOpen, onClose, patientId, onSaveAction }: ModalRecordGestacionalProps) {
   const { register, control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<RecordGestacionalForm>({
     resolver: zodResolver(recordGestacionalSchema)
   });
@@ -45,22 +37,10 @@ export function ModalRecordGestacional({
   const toOptions = (enumObj: any) => Object.values(enumObj).map(val => ({ label: String(val), value: String(val) }));
 
   const onSubmit = async (data: RecordGestacionalForm) => {
-    // Validação restrita a pacientes do gênero feminino
-    if (patientSex && patientSex.toLowerCase() !== "feminino") {
-      setSubmitError("A ficha de Sífilis Gestacional só pode ser cadastrada para pacientes do gênero feminino.");
-      return;
-    }
-  
     setSubmitError(null);
     try {
-      // 1. Salva a ficha de notificação gestacional
-      await onSaveAction({ ...data, patientId });
-
-      // 2. Atualiza automaticamente o status da paciente para gestante ("Sim")
-      if (onUpdatePatientStatus) {
-        await onUpdatePatientStatus(patientId, { gestante: "Sim" });
-      }
-
+      // Só limpa e fecha DEPOIS que a API confirmar; se falhar, o formulário continua preenchido
+      await onSaveAction(omitEmpty({ ...data, patientId }));
       reset();
       onClose();
     } catch (error) {
@@ -71,12 +51,12 @@ export function ModalRecordGestacional({
   const handleAutoFill = () => {
     reset({
       tipoNotificacao: "2", numSinan: "7654321", agravo: "Sífilis Gestacional", 
-      codeCid: Cid10.CID_O981, 
-      status: StatusFicha.AGUARDANDO_EXAME, 
+      codeCid: Cid10.CID_O981, // Usa o enum exato: "098.1"
+      status: StatusFicha.AGUARDANDO_EXAME, // Usa o enum exato
       dataNotificacao: "2026-10-14", dataDiagnostico: "2026-10-12",
-      UF: "CE", municipio: "Sobral", codeIbge: "2312908", codeUnidadeSaude: "202020", 
+      UF: "CE", municipio: "Sobral", codeIbge: "2312908", codeUnidadeSaude: "202020", // Adicionados campos obrigatórios
       detalhesGestante: {
-        ocupacao: "Professora", ufPreNatal: "CE", municipioPreNatal: "Sobral",
+        ocupacao: "Professora", dataUltimaMenstruacao: "2026-08-10", ufPreNatal: "CE", municipioPreNatal: "Sobral",
         unidadePreNatal: "CSF Centro", classificacaoClinica: ClassClinicaGestanteEnum.PRIMARIA,
         numeroSisprenatal: "12345678", testeNaoTreponemicoPreNatal: TesteEnum.REAGENTE,
         tituloNaoTreponemico: "1:16", dataTesteNaoTreponemico: "2026-10-10",
@@ -134,6 +114,7 @@ export function ModalRecordGestacional({
               
               <InputField label="Unidade de Saúde (Pré-Natal)" register={register("detalhesGestante.unidadePreNatal")} className="col-span-12 md:col-span-6" />
               <InputField label="Nº SISPRENATAL" register={register("detalhesGestante.numeroSisprenatal")} className="col-span-12 md:col-span-3" />
+              <InputField type="date" label="Data da Última Menstruação (DUM) - calcula a DPP" register={register("detalhesGestante.dataUltimaMenstruacao")} error={errors.detalhesGestante?.dataUltimaMenstruacao?.message} className="col-span-12 md:col-span-5" />
               <SelectField label="Classificação Clínica" name="detalhesGestante.classificacaoClinica" control={control} options={toOptions(ClassClinicaGestanteEnum)} className="col-span-12 md:col-span-3" />
             </div>
           </div>
@@ -173,9 +154,7 @@ export function ModalRecordGestacional({
           </button>
           <div className="flex gap-3">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100 font-medium">Cancelar</button>
-            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 font-medium disabled:opacity-60 disabled:cursor-not-allowed">
-              {isSubmitting ? "Salvando..." : "Salvar Ficha Gestacional"}
-            </button>
+            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 font-medium disabled:opacity-60 disabled:cursor-not-allowed">{isSubmitting ? "Salvando..." : "Salvar Ficha Gestacional"}</button>
           </div>
         </div>
 

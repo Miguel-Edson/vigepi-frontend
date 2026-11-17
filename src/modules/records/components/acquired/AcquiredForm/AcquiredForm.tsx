@@ -13,6 +13,9 @@ import { RecordSections } from "@/modules/records/components/shared/RecordSectio
 import { recordToFormValues } from "@/modules/records/components/shared/formValues";
 import { emptyToNull } from "@/utils/payload";
 import { MonitoringTab } from "@/modules/records/components/monitoring/MonitoringTab";
+import { RecordObservations } from "@/modules/records/components/observations/RecordObservations";
+import { RecordClosureButtons } from "@/modules/records/components/shared/RecordClosureButtons";
+import { useRecordClosure } from "@/modules/records/hooks/useRecordClosure";
 import { acquiredSections } from "../acquiredSections";
 
 interface AcquiredFormProps {
@@ -23,6 +26,7 @@ interface AcquiredFormProps {
 const TABS = [
   { id: "ficha", label: "Sífilis Adquirida" },
   { id: "acompanhamento", label: "Acompanhamento" },
+  { id: "observacoes", label: "Observações" },
 ];
 
 export function AcquiredForm({ recordId, patientId }: AcquiredFormProps) {
@@ -68,6 +72,9 @@ export function AcquiredForm({ recordId, patientId }: AcquiredFormProps) {
     loadRecord();
   }, [loadRecord]);
 
+  // Concluir / abandonar / reabrir: grava o status da ficha e recarrega
+  const closure = useRecordClosure(record, loadRecord);
+
   const handleToggleEdit = () => {
     // Ao cancelar, descarta o que foi digitado e volta aos dados salvos
     if (isEditing && record) reset(recordToFormValues<RecordAdquiridaForm>(record, acquiredSections));
@@ -110,6 +117,7 @@ export function AcquiredForm({ recordId, patientId }: AcquiredFormProps) {
       numSinan={record.numSinan}
       isEditing={isEditing}
       onToggleEdit={handleToggleEdit}
+      actions={<RecordClosureButtons status={record.status} closure={closure} />}
       tabs={TABS}
       activeTab={activeTab}
       onTabChange={setActiveTab}
@@ -149,8 +157,10 @@ export function AcquiredForm({ recordId, patientId }: AcquiredFormProps) {
       )}
 
       {activeTab === "acompanhamento" && (
-        <MonitoringTab recordId={recordId} tipoAgravo="adquirida" record={record} />
+        <MonitoringTab recordId={recordId} tipoAgravo="adquirida" record={record} onRecordChanged={loadRecord} />
       )}
+
+      {activeTab === "observacoes" && <RecordObservations recordId={recordId} />}
     </RecordPageShell>
   );
 }

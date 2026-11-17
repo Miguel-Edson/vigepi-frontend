@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,6 +20,12 @@ import { recordService } from "@/modules/records/services/recordService";
 import { InputField } from "@/components/form/InputField";
 import { SelectField } from "@/components/form/SelectField";
 import { MonitoringTab } from "../Monitoring/MonitoringTab";
+import { RecordClosureButtons } from "@/modules/records/components/shared/RecordClosureButtons";
+import { recordToFormValues } from "@/modules/records/components/shared/formValues";
+import { useRecordClosure } from "@/modules/records/hooks/useRecordClosure";
+import { formatGestationalAge } from "@/modules/records/monitoring/gestational";
+import { formatDate } from "@/utils/formatters";
+import { RecordObservations } from "@/modules/records/components/observations/RecordObservations";
 
 interface PregnantFormProps {
   recordId: string;
@@ -27,7 +33,7 @@ interface PregnantFormProps {
 }
 
 export default function FichaGestante({ recordId, patientId }: PregnantFormProps) {
-  const [activeTab, setActiveTab] = useState<"gestante" | "acompanhamento" | "historico">("gestante");
+  const [activeTab, setActiveTab] = useState<"gestante" | "acompanhamento" | "observacoes" | "historico">("gestante");
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [fichaReal, setFichaReal] = useState<RecordAPI | null>(null);
@@ -36,42 +42,57 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
     resolver: zodResolver(recordGestacionalSchema)
   });
 
-  useEffect(() => {
-    async function carregarFicha() {
-      try {
-        setIsLoading(true);
-        const data = await recordService.getById(recordId);
-        setFichaReal(data);
-        
-        reset({
-          tipoNotificacao: data.tipoNotificacao,
-          numSinan: data.numSinan,
-          agravo: data.agravo,
-          codeCid: data.codeCid as Cid10,
-          status: data.status as StatusFicha,
-          dataNotificacao: data.dataNotificacao,
-          dataDiagnostico: data.dataDiagnostico,
-          UF: data.UF,
-          municipio: data.municipio,
-          codeIbge: data.codeIbge,
-          codeUnidadeSaude: data.codeUnidadeSaude,
-          detalhesGestante: data.detalhesGestante as any
-        });
-      } catch (error) {
-        console.error("Erro ao carregar ficha:", error);
-      } finally {
-        setIsLoading(false);
-      }
+  // `silent`: recarrega sem trocar a tela por "Carregando..." (usado depois de salvar/mudar status)
+  const carregarFicha = useCallback(async (silent = false) => {
+    try {
+      if (!silent) setIsLoading(true);
+      const data = await recordService.getById(recordId);
+      setFichaReal(data);
+
+      // A API devolve null nos campos vazios e o Zod (.optional()) não aceita null: sem esta
+      // limpeza o "Salvar Alterações" falhava sem mostrar erro.
+      reset(recordToFormValues<RecordGestacionalForm>({
+        tipoNotificacao: data.tipoNotificacao,
+        numSinan: data.numSinan,
+        agravo: data.agravo,
+        codeCid: data.codeCid as Cid10,
+        status: data.status as StatusFicha,
+        dataNotificacao: data.dataNotificacao,
+        dataDiagnostico: data.dataDiagnostico,
+        UF: data.UF,
+        municipio: data.municipio,
+        codeIbge: data.codeIbge,
+        codeUnidadeSaude: data.codeUnidadeSaude,
+        detalhesGestante: data.detalhesGestante
+      }, []));
+    } catch (error) {
+      console.error("Erro ao carregar ficha:", error);
+    } finally {
+      setIsLoading(false);
     }
-    carregarFicha();
   }, [recordId, reset]);
+
+  useEffect(() => {
+    carregarFicha();
+  }, [carregarFicha]);
+
+  // Concluir / abandonar / reabrir: grava o status da ficha e recarrega
+  const closure = useRecordClosure(fichaReal, () => carregarFicha(true));
 
   const toOptions = (enumObj: any) => Object.values(enumObj).map(val => ({ label: String(val), value: String(val) }));
 
   const onSubmitUpdate = async (data: RecordGestacionalForm) => {
     try {
-      const updated = await recordService.update(recordId, data as any);
-      setFichaReal(updated);
+      // DUM apagada vira null (é assim que a API limpa o campo)
+      const payload = {
+        ...data,
+        detalhesGestante: {
+          ...data.detalhesGestante,
+          dataUltimaMenstruacao: data.detalhesGestante?.dataUltimaMenstruacao || null,
+        },
+      };
+      await recordService.update(recordId, payload as any);
+      await carregarFicha(true); // traz a DPP e a idade gestacional recalculadas pelo backend
       setIsEditing(false);
       alert("Ficha atualizada com sucesso!");
     } catch (error) {
@@ -79,6 +100,8 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
       alert("Erro ao salvar alterações.");
     }
   };
+
+  const onInvalid = () => alert("Revise os campos destacados em vermelho antes de salvar.");
 
   if (isLoading) {
     return <div className="min-h-screen flex justify-center pt-20 text-gray-500">Carregando ficha...</div>;
@@ -112,20 +135,7 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
             >
               {isEditing ? "Cancelar Edição" : "Editar Informações"}
             </button>
-            <button 
-              type="button"
-              onClick={() => alert("Ficha marcada como concluída")}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 cursor-pointer"
-            >
-              Marcar como concluída
-            </button>
-            <button 
-              type="button"
-              onClick={() => alert("Ficha marcada como abandonada")}
-              className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 cursor-pointer"
-            >
-              Marcar como abandonada
-            </button>
+            <RecordClosureButtons status={fichaReal.status} closure={closure} />
           </div>
         </div>
 
@@ -154,6 +164,17 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab("observacoes")}
+            className={`pb-3 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+              activeTab === "observacoes" 
+                ? "border-primary text-primary" 
+                : "border-transparent text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            Observações
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab("historico")}
             className={`pb-3 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
               activeTab === "historico" 
@@ -168,7 +189,7 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
 
       {/* CONTEÚDO DA ABA: SÍFILIS EM GESTANTE */}
       {activeTab === "gestante" && (
-        <form onSubmit={handleSubmit(onSubmitUpdate)} className="space-y-6">          
+        <form onSubmit={handleSubmit(onSubmitUpdate, onInvalid)} className="space-y-6">          
           {/* Bloco 1: Dados Gerais */}
           <div className="border border-primary rounded-xl p-5 relative bg-white">
             <h3 className="absolute -top-3 left-4 bg-white px-2 text-primary font-medium text-sm">
@@ -182,7 +203,7 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
                   <InputField type="date" register={register("dataNotificacao")} error={errors.dataNotificacao?.message} />
                 ) : (
                   <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-                    {fichaReal.dataNotificacao}
+                    {formatDate(fichaReal.dataNotificacao) || "-"}
                   </div>
                 )}
               </div>
@@ -286,6 +307,47 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
             </div>
           </div>
 
+          {/* Bloco: DUM, DPP e idade gestacional */}
+          <div className="border border-primary rounded-xl p-5 relative bg-white">
+            <h3 className="absolute -top-3 left-4 bg-white px-2 text-primary font-medium text-sm">
+              Gestação: DUM e DPP
+            </h3>
+
+            <div className="grid grid-cols-12 gap-4 mt-2">
+              <div className="col-span-12 md:col-span-4 space-y-1">
+                <label className="text-xs text-gray-500 font-medium pl-1">Data da Última Menstruação (DUM)</label>
+                {isEditing ? (
+                  <InputField type="date" register={register("detalhesGestante.dataUltimaMenstruacao")} error={errors.detalhesGestante?.dataUltimaMenstruacao?.message} />
+                ) : (
+                  <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
+                    {formatDate(fichaReal.detalhesGestante?.dataUltimaMenstruacao) || "-"}
+                  </div>
+                )}
+              </div>
+
+              <div className="col-span-12 md:col-span-4 space-y-1">
+                <label className="text-xs text-gray-500 font-medium pl-1">Data Provável do Parto (DPP)</label>
+                <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm font-semibold text-gray-800">
+                  {fichaReal.statusGestacional ? formatDate(fichaReal.statusGestacional.dpp) : "-"}
+                </div>
+              </div>
+
+              <div className="col-span-12 md:col-span-4 space-y-1">
+                <label className="text-xs text-gray-500 font-medium pl-1">Idade gestacional hoje</label>
+                <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
+                  {fichaReal.statusGestacional ? formatGestationalAge(fichaReal.statusGestacional) : "-"}
+                </div>
+              </div>
+
+              <p className="col-span-12 text-xs text-gray-400">
+                {fichaReal.statusGestacional
+                  ? "A DPP é estimada como DUM + 280 dias e não substitui a avaliação clínica nem a datação por ultrassom."
+                  : "Informe uma DUM válida (não futura) para calcular a DPP e a idade gestacional."}
+                {isEditing && " Ao salvar, os valores são recalculados."}
+              </p>
+            </div>
+          </div>
+
           {/* Bloco 3: Dados Laboratoriais e Tratamento */}
           <div className="border border-primary rounded-xl p-5 relative bg-white">
             <h3 className="absolute -top-3 left-4 bg-white px-2 text-primary font-medium text-sm">
@@ -321,7 +383,7 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
                   <InputField type="date" register={register("detalhesGestante.dataTesteNaoTreponemico")} />
                 ) : (
                   <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-                    {fichaReal.detalhesGestante?.dataTesteNaoTreponemico || "-"}
+                    {formatDate(fichaReal.detalhesGestante?.dataTesteNaoTreponemico) || "-"}
                   </div>
                 )}
               </div>
@@ -426,8 +488,11 @@ export default function FichaGestante({ recordId, patientId }: PregnantFormProps
 
       {/* ABA DE ACOMPANHAMENTO */}
       {activeTab === "acompanhamento" && (
-        <MonitoringTab recordId={recordId} tipoAgravo="gestante" />
+        <MonitoringTab recordId={recordId} tipoAgravo="gestante" record={fichaReal} onRecordChanged={() => carregarFicha(true)} />
       )}
+
+      {/* ABA DE OBSERVAÇÕES CLÍNICAS */}
+      {activeTab === "observacoes" && <RecordObservations recordId={recordId} />}
 
       {/* ABA DE HISTÓRICO */}
       {activeTab === "historico" && (

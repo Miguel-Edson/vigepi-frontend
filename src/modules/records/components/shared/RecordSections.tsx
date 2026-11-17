@@ -92,14 +92,19 @@ export function RecordSections<T extends FieldValues>({
               if (type === "checkbox") {
                 item = (
                   <label className={`${CHECKBOX_CLASS} flex items-center gap-2 text-sm text-gray-700`}>
+                    {/* `key` diferente: no modo leitura o checkbox é controlado (checked) e no de edição é
+                        do formulário (register). Sem a key o React reaproveitava o mesmo elemento e avisava
+                        "controlled input to be uncontrolled". */}
                     {isEditing ? (
                       <input
+                        key="edit"
                         type="checkbox"
                         {...register(field.name)}
                         className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
                     ) : (
                       <input
+                        key="view"
                         type="checkbox"
                         checked={Boolean(getByPath(record, field.name))}
                         readOnly

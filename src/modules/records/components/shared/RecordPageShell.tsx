@@ -13,6 +13,8 @@ interface RecordPageShellProps {
   numSinan: string;
   isEditing: boolean;
   onToggleEdit: () => void;
+  /** Botões extras no cabeçalho (ex.: concluir/abandonar). */
+  actions?: ReactNode;
   tabs: RecordTab[];
   activeTab: string;
   onTabChange: (id: string) => void;
@@ -25,6 +27,7 @@ export function RecordPageShell({
   numSinan,
   isEditing,
   onToggleEdit,
+  actions,
   tabs,
   activeTab,
   onTabChange,
@@ -44,13 +47,16 @@ export function RecordPageShell({
             Ficha Epidemiológica <span className="text-primary font-normal">| N° SINAN: {numSinan}</span>
           </h1>
 
-          <button
-            type="button"
-            onClick={onToggleEdit}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
-          >
-            {isEditing ? "Cancelar Edição" : "Editar Informações"}
-          </button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={onToggleEdit}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
+            >
+              {isEditing ? "Cancelar Edição" : "Editar Informações"}
+            </button>
+            {actions}
+          </div>
         </div>
 
         <div className="flex items-center gap-8 border-b border-gray-100">
