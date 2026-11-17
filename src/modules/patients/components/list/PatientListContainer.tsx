@@ -15,7 +15,7 @@ import { agravoToTipo, hasTreatments } from "@/modules/records/monitoring/config
 import { patientService } from "../../services/patientService";
 import type { NovaFichaForm } from "@/modules/patients/schemas/patientSchema";
 import { Gestante } from "@/modules/patients/types/patient";
-import { latestTimestamp } from "@/utils/timestamps";
+import { latestTimestamp, pickTimestamp } from "@/utils/timestamps";
 
 // 1. Array base (sem as contagens, elas serão dinâmicas agora)
 const BASE_TABS = [
@@ -80,13 +80,18 @@ export function PatientListContainer() {
       const patientRecords = safeRecords.filter(belongsToPatient);
       const patientRecord = patientRecords[0];
 
-      // Última atualização: o evento mais recente entre o cadastro do paciente e TODAS as suas fichas
-      // (criação ou alteração). Se o resumo de doses trouxer `updatedAt`, ele também conta.
+      // Última atualização: o evento mais recente entre o cadastro/alteração do PACIENTE e TODAS as suas
+      // fichas (criação ou alteração). Sem nenhuma ficha (ou ficha sem data), vale a data do paciente.
+      // Se o resumo de doses trouxer `updatedAt`, ele também conta.
       const ultimaAtt =
         latestTimestamp([
-          patient.createdAt,
-          patient.updatedAt,
-          ...patientRecords.flatMap((r) => [r.createdAt, r.updatedAt, dosesByRecord[r.id]?.updatedAt]),
+          pickTimestamp(patient, ["updatedAt", "updated_at"]),
+          pickTimestamp(patient, ["createdAt", "created_at"]),
+          ...patientRecords.flatMap((r) => [
+            pickTimestamp(r, ["updatedAt", "updated_at"]),
+            pickTimestamp(r, ["createdAt", "created_at"]),
+            dosesByRecord[r.id]?.updatedAt,
+          ]),
         ]) ?? "";
 
       // DPP: vem da ficha GESTACIONAL (mesmo que a primeira ficha da lista seja de outro tipo)

@@ -30,7 +30,7 @@ export function getColumns({ showSensitive }: { showSensitive: boolean }): Colum
     {
       accessorKey: "ultimaAtt",
       header: "Última atualização",
-      cell: ({ row }) => formatDateTime(row.original.ultimaAtt) || "-",
+      cell: ({ row }) => formatDateTime(row.original.ultimaAtt) || row.original.ultimaAtt || "-", // data fora do padrão: mostra como veio
     },
     {
       accessorKey: "sinam",
