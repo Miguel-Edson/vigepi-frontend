@@ -9,6 +9,8 @@ const STYLE: Record<TreatmentStatusKind, { box: string; dot: string }> = {
   em_tratamento: { box: "bg-emerald-50 border-emerald-200 text-emerald-800", dot: "bg-emerald-500" },
   dose_atrasada: { box: "bg-red-50 border-red-200 text-red-800", dot: "bg-red-500" },
   finalizado: { box: "bg-blue-50 border-blue-200 text-blue-800", dot: "bg-blue-500" },
+  abandonado: { box: "bg-amber-50 border-amber-200 text-amber-800", dot: "bg-amber-500" },
+  obito: { box: "bg-gray-100 border-gray-300 text-gray-800", dot: "bg-gray-700" },
 };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -41,8 +43,20 @@ export function TreatmentStatusBanner({ status }: { status: TreatmentStatus }) {
         </p>
       )}
 
-      {status.kind === "finalizado" && status.lastDoseDate && (
-        <p className="text-sm">Última dose aplicada em <strong>{formatDate(status.lastDoseDate)}</strong>.</p>
+      {status.kind === "finalizado" && (
+        <p className="text-sm">
+          {status.lastDoseDate ? (
+            <>Última dose aplicada em <strong>{formatDate(status.lastDoseDate)}</strong>.</>
+          ) : (
+            "Tratamento marcado como concluído."
+          )}
+        </p>
+      )}
+
+      {status.kind === "abandonado" && (
+        <p className="text-sm">
+          Tratamento marcado como abandonado. Registrar uma nova dose reabre a ficha automaticamente.
+        </p>
       )}
 
       {status.kind === "sem_tratamento" && <p className="text-sm">Nenhuma dose registrada nesta ficha.</p>}

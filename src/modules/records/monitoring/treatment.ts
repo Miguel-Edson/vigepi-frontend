@@ -1,3 +1,4 @@
+import { StatusFicha } from "@/modules/records/types/record";
 import { addDays, diffInDays, isValidISODate, todayISO } from "@/utils/dates";
 import { formatDate } from "@/utils/formatters";
 import { DOSE_INTERVAL_DAYS, DOSES_PER_TREATMENT } from "./config";
@@ -71,13 +72,21 @@ export function readTreatments(
 // ----------------------------------------------------------------------------
 // Status geral (o que aparece no banner da ficha e na listagem de pacientes)
 // ----------------------------------------------------------------------------
-export type TreatmentStatusKind = "sem_tratamento" | "em_tratamento" | "dose_atrasada" | "finalizado";
+export type TreatmentStatusKind =
+  | "sem_tratamento"
+  | "em_tratamento"
+  | "dose_atrasada"
+  | "finalizado"
+  | "abandonado"
+  | "obito";
 
 export const STATUS_LABEL: Record<TreatmentStatusKind, string> = {
   sem_tratamento: "Sem tratamento iniciado",
   em_tratamento: "Em tratamento",
   dose_atrasada: "Dose atrasada",
   finalizado: "Tratamento finalizado",
+  abandonado: "Tratamento abandonado",
+  obito: "Óbito registrado",
 };
 
 export interface TreatmentStatus {
@@ -91,31 +100,43 @@ export interface TreatmentStatus {
   lastDoseDate: string | null;
 }
 
-export function getTreatmentStatus(treatments: Treatment[], today: string = todayISO()): TreatmentStatus {
+/**
+ * Status geral do tratamento.
+ * O status da FICHA marcado manualmente (Óbito, Descontinuado = abandonado, Tratamento
+ * Finalizado = concluído) prevalece sobre as doses; fora isso o status vem das datas.
+ */
+export function getTreatmentStatus(
+  treatments: Treatment[],
+  options: { today?: string; recordStatus?: string } = {}
+): TreatmentStatus {
+  const today = options.today ?? todayISO();
   const latest = treatments[treatments.length - 1];
 
-  if (!latest) {
-    return {
-      kind: "sem_tratamento", label: STATUS_LABEL.sem_tratamento,
-      treatmentNumber: null, nextDoseNumber: null, nextDoseDate: null, daysUntilNext: null, lastDoseDate: null,
-    };
-  }
-
-  const common = { treatmentNumber: latest.number, lastDoseDate: latest.lastDoseDate };
-
-  if (latest.state === "completo") {
-    return { ...common, kind: "finalizado", label: STATUS_LABEL.finalizado, nextDoseNumber: null, nextDoseDate: null, daysUntilNext: null };
-  }
-
-  const kind: TreatmentStatusKind = latest.state === "atrasado" ? "dose_atrasada" : "em_tratamento";
-  return {
-    ...common,
+  const build = (kind: TreatmentStatusKind, extra: Partial<TreatmentStatus> = {}): TreatmentStatus => ({
     kind,
     label: STATUS_LABEL[kind],
+    treatmentNumber: latest?.number ?? null,
+    lastDoseDate: latest?.lastDoseDate ?? null,
+    nextDoseNumber: null,
+    nextDoseDate: null,
+    daysUntilNext: null,
+    ...extra,
+  });
+
+  switch (options.recordStatus) {
+    case StatusFicha.OBITO: return build("obito");
+    case StatusFicha.DESCONTINUADO: return build("abandonado");
+    case StatusFicha.TRATAMENTO_FINALIZADO: return build("finalizado");
+  }
+
+  if (!latest) return build("sem_tratamento");
+  if (latest.state === "completo") return build("finalizado"); // 3 doses aplicadas
+
+  return build(latest.state === "atrasado" ? "dose_atrasada" : "em_tratamento", {
     nextDoseNumber: latest.nextDoseNumber,
     nextDoseDate: latest.nextDoseDate,
     daysUntilNext: latest.nextDoseDate ? diffInDays(today, latest.nextDoseDate) : null,
-  };
+  });
 }
 
 // ----------------------------------------------------------------------------

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { authService } from "@/modules/auth/services/authService";
+import { useState } from "react";
+import { useIsAdmin } from "@/modules/auth/hooks/useIsAdmin";
+import { recordService } from "@/modules/records/services/recordService";
 import { useMonitoramento } from "@/modules/records/hooks/useMonitoramento";
 import { hasTreatments, MAX_TREATMENTS, type MonitoramentoTipo } from "@/modules/records/monitoring/config";
 import { getTreatmentStatus, readTreatments } from "@/modules/records/monitoring/treatment";
-import type { RecordAPI } from "@/modules/records/types/record";
+import { StatusFicha, type RecordAPI } from "@/modules/records/types/record";
 import { TreatmentStatusBanner } from "./TreatmentStatusBanner";
 import { TreatmentManager } from "./TreatmentManager";
 import { MonitoringInfoForm } from "./MonitoringInfoForm";
@@ -15,18 +16,34 @@ interface MonitoringTabProps {
   tipoAgravo?: MonitoramentoTipo;
   /** Opcional: mostra Nº SINAN e nome do paciente no topo da aba. */
   record?: RecordAPI | null;
+  /** Chamado quando o status da ficha muda (ex.: reabertura ao registrar dose). Recarrega a ficha. */
+  onRecordChanged?: () => Promise<unknown> | void;
 }
 
 /** Aba "Acompanhamento": serve às fichas gestante, adquirida e congênita. */
-export function MonitoringTab({ recordId, tipoAgravo = "gestante", record }: MonitoringTabProps) {
+export function MonitoringTab({ recordId, tipoAgravo = "gestante", record, onRecordChanged }: MonitoringTabProps) {
   const tipo = tipoAgravo;
-  const [canEdit, setCanEdit] = useState(false);
+  const canEdit = useIsAdmin(); // criar/alterar monitoramento exige perfil ADM no backend (RolesGuard)
+  const [notice, setNotice] = useState<string | null>(null);
   const { monitoramento, isLoading, error, save } = useMonitoramento(tipo, recordId);
 
-  // Criar/alterar monitoramento exige perfil ADM no backend (RolesGuard)
-  useEffect(() => {
-    setCanEdit(authService.isAdmin());
-  }, []);
+  // Registrar uma dose em ficha concluída/abandonada = novo tratamento: reabre a ficha
+  const saveAndReopen = async (data: Record<string, unknown>) => {
+    setNotice(null);
+    await save(data);
+
+    const registersDose = Object.entries(data).some(([key, value]) => /^dose\d+dataTrat\d+$/.test(key) && value);
+    const isClosed = record?.status === StatusFicha.DESCONTINUADO || record?.status === StatusFicha.TRATAMENTO_FINALIZADO;
+    if (!registersDose || !record || !isClosed) return;
+
+    try {
+      await recordService.update(record.id, { status: StatusFicha.AGUARDANDO_EXAME });
+      await onRecordChanged?.();
+    } catch (err) {
+      console.error("Dose registrada, mas a ficha não foi reaberta:", err);
+      setNotice("Dose registrada, mas não foi possível reabrir a ficha. Use o botão “Reabrir ficha” no topo da página.");
+    }
+  };
 
   if (isLoading) {
     return <div className="p-8 text-center text-gray-500">Carregando acompanhamento...</div>;
@@ -51,8 +68,11 @@ export function MonitoringTab({ recordId, tipoAgravo = "gestante", record }: Mon
 
       {hasTreatments(tipo) && (
         <>
-          <TreatmentStatusBanner status={getTreatmentStatus(readTreatments(monitoramento, MAX_TREATMENTS[tipo]))} />
-          <TreatmentManager tipo={tipo} monitoramento={monitoramento} canEdit={canEdit} onSave={save} />
+          <TreatmentStatusBanner
+            status={getTreatmentStatus(readTreatments(monitoramento, MAX_TREATMENTS[tipo]), { recordStatus: record?.status })}
+          />
+          {notice && <p role="alert" className="text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3">{notice}</p>}
+          <TreatmentManager tipo={tipo} monitoramento={monitoramento} canEdit={canEdit} onSave={saveAndReopen} />
         </>
       )}
 
