@@ -1,31 +1,50 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { columns } from "./columns"
+import { getColumns } from "./columns"
 import { PatientTable } from "@/modules/patients/types/patient"; 
 import { DataTable } from "@/components/ui/dataTable";
 import { ModalNewPatient } from "./ModalNewPatient"
 import { usePatients } from "@/modules/patients/hooks/usePatients";
 import { useRecords } from "@/modules/records/hooks/useRecords";
+import { useTreatmentSummaries } from "@/modules/records/hooks/useTreatmentSummaries";
+import { getListStatus } from "@/modules/records/monitoring/listStatus";
+import { getDppInfo } from "@/modules/records/monitoring/gestational";
+import { Agravo } from "@/modules/records/types/record";
+import { agravoToTipo, hasTreatments } from "@/modules/records/monitoring/config";
 import { patientService } from "../../services/patientService";
+import type { NovaFichaForm } from "@/modules/patients/schemas/patientSchema";
+import { Gestante } from "@/modules/patients/types/patient";
+import { latestTimestamp } from "@/utils/timestamps";
 
 // 1. Array base (sem as contagens, elas serão dinâmicas agora)
 const BASE_TABS = [
   { id: "todas", label: "Todas" },
+  { id: "Dose Atrasada", label: "Dose Atrasada" },
   { id: "Tratamento Finalizado", label: "Tratamento Finalizado" },
-  { id: "Dose Atrasada", label: "Em Tratamento" },
   { id: "Descontinuado", label: "Descontinuado" },
   { id: "Aguardando Exame", label: "Aguardando Exame" }, 
-  { id: "DPP", label: "Gestantes" }, 
+  { id: "gestantes", label: "Gestantes" }, // filtra por paciente.gestante, não pelo status da ficha
   { id: "sem-ficha", label: "Sem Ficha (Pendentes)" }, 
 ];
 
 
 
+// Decide se uma linha pertence a uma aba. "gestantes" usa o cadastro do paciente;
+// as demais comparam o status da ficha.
+function matchesTab(patient: PatientTable, tabId: string): boolean {
+  if (tabId === "todas") return true;
+  if (tabId === "gestantes") return patient.gestante;
+  return patient.status === tabId;
+}
+
 export function PatientListContainer() {
   const [activeTab, setActiveTab] = useState("todas");
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // "Olhinho": nome e CPF começam ocultos (privacidade) e o botão alterna
+  const [showSensitive, setShowSensitive] = useState(false);
+  const columns = useMemo(() => getColumns({ showSensitive }), [showSensitive]);
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = 1;
 
@@ -42,6 +61,9 @@ export function PatientListContainer() {
     error: errorRecords 
   } = useRecords();
 
+  // Doses de todas as fichas: com elas o status vira "Em Tratamento" + data da próxima dose
+  const dosesByRecord = useTreatmentSummaries();
+
   const isLoading = loadingPatients || loadingRecords;
   const error = errorPatients || errorRecords;
   const refetch = refetchPatients;
@@ -52,38 +74,69 @@ export function PatientListContainer() {
     const safeRecords = records || [];
 
     return patients.map((patient) => {
-      const patientRecord = safeRecords.find(r => 
-        (r.patient && r.patient.id === patient.id) || 
-        (r as any).pacienteId === patient.id
+      const belongsToPatient = (r: (typeof safeRecords)[number]) =>
+        (r.patient && r.patient.id === patient.id) || (r as any).pacienteId === patient.id;
+
+      const patientRecords = safeRecords.filter(belongsToPatient);
+      const patientRecord = patientRecords[0];
+
+      // Última atualização: o evento mais recente entre o cadastro do paciente e TODAS as suas fichas
+      // (criação ou alteração). Se o resumo de doses trouxer `updatedAt`, ele também conta.
+      const ultimaAtt =
+        latestTimestamp([
+          patient.createdAt,
+          patient.updatedAt,
+          ...patientRecords.flatMap((r) => [r.createdAt, r.updatedAt, dosesByRecord[r.id]?.updatedAt]),
+        ]) ?? "";
+
+      // DPP: vem da ficha GESTACIONAL (mesmo que a primeira ficha da lista seja de outro tipo)
+      // e só aparece enquanto a paciente estiver marcada como gestante.
+      const gestationalRecord = safeRecords.find(
+        (r) => belongsToPatient(r) && r.agravo === Agravo.SIFILIS_GESTACIONAL
       );
+      const dpp =
+        patient.gestante === Gestante.SIM && gestationalRecord
+          ? getDppInfo(gestationalRecord.statusGestacional, dosesByRecord[gestationalRecord.id]?.dpp)
+          : undefined;
 
       if (patientRecord) {
+        const tipo = agravoToTipo(patientRecord.agravo);
+        const listStatus = getListStatus(
+          patientRecord.status || "Dose Atrasada", // Assumindo default se vazio
+          tipo && hasTreatments(tipo) ? tipo : undefined,
+          dosesByRecord[patientRecord.id]
+        );
+
         return {
           id: patient.id,
           nome: patient.nome,
           cpf: patient.cpf,
-          ultimaAtt: "Atualizado",
+          ultimaAtt,
           sinam: patientRecord.numSinan || "Sem Nº SINAN", 
           unidade: patientRecord.codeUnidadeSaude || "Não informada",
           bairro: patient.bairro || "Não informado", 
           tipoFicha: patientRecord.agravo || "N/A",
-          status: patientRecord.status || "Dose Atrasada" // Assumindo default se vazio
+          status: listStatus.key,
+          statusDetalhe: listStatus.detail,
+          dpp,
+          gestante: patient.gestante === Gestante.SIM
         };
       } else {
         return {
           id: patient.id,
           nome: patient.nome,
           cpf: patient.cpf,
-          ultimaAtt: "N/A", 
+          ultimaAtt,
           sinam: "Aguardando Ficha", 
           unidade: "Pendente",
           bairro: patient.bairro || "Não informado", 
           tipoFicha: "Nenhuma ficha criada",
-          status: "sem-ficha" 
+          status: "sem-ficha",
+          gestante: patient.gestante === Gestante.SIM
         };
       }
     });
-  }, [patients, records]);
+  }, [patients, records, dosesByRecord]);
 
   // 3. Calcula dinamicamente as contagens com base na lista formatada
   const tabsWithCounts = useMemo(() => {
@@ -93,7 +146,7 @@ export function PatientListContainer() {
       }
       return { 
         ...tab, 
-        count: formattedPatients.filter(p => p.status === tab.id).length 
+        count: formattedPatients.filter(p => matchesTab(p, tab.id)).length 
       };
     });
   }, [formattedPatients]);
@@ -101,44 +154,37 @@ export function PatientListContainer() {
   // 4. Aplica os filtros de aba e barra de pesquisa
   const tableData = useMemo(() => {
     return formattedPatients.filter((patient) => {
-      const matchesTab = activeTab === "todas" || patient.status === activeTab;
+      const isInTab = matchesTab(patient, activeTab);
       const matchesSearch = 
         patient.nome.toLowerCase().includes(searchQuery.toLowerCase()) || 
         patient.cpf.includes(searchQuery);
       
-      return matchesTab && matchesSearch;
+      return isInTab && matchesSearch;
     });
   }, [formattedPatients, activeTab, searchQuery]);
 
   // Função que vai pegar os dados do modal e mandar para o backend criar!
+  // Não captura erros de propósito: se a API falhar, o ModalNewPatient mostra a mensagem
+  // dentro do formulário e mantém tudo que foi digitado.
   const handleCreatePatient = async (dadosNovos: NovaFichaForm) => {
-    try {
-      // 1. Limpeza dos dados (exatamente como na edição)
-      const { ibge, ...dadosValidos } = dadosNovos;
-      
-      const dadosTratados = {
-        ...dadosValidos,
-        cpf: dadosNovos.cpf?.replace(/\D/g, ''),
-        cns: dadosNovos.cns?.replace(/\D/g, ''),
-        cep: dadosNovos.cep?.replace(/\D/g, ''),
-        telefone: dadosNovos.telefone?.replace(/\D/g, ''),
-      };
+    // 1. Limpeza dos dados (exatamente como na edição)
+    const { ibge, ...dadosValidos } = dadosNovos;
 
-      // 2. Chama o POST no backend!
-      await patientService.create(dadosTratados);
-      
-      // 3. Sucesso! Fecha o modal e atualiza a tabela
-      setIsModalOpen(false);
-      
-      // Aqui você chama a função que busca os pacientes de novo para a tabela atualizar
-      // Ex: carregarPacientes(); ou setAtualizarTabela(!atualizarTabela);
-      alert("Paciente criado com sucesso!");
+    const dadosTratados = {
+      ...dadosValidos,
+      cpf: dadosNovos.cpf?.replace(/\D/g, ''),
+      cns: dadosNovos.cns?.replace(/\D/g, ''),
+      cep: dadosNovos.cep?.replace(/\D/g, ''),
+      telefone: dadosNovos.telefone?.replace(/\D/g, ''),
+    };
 
-    } catch (error: any) {
-      console.error("Erro ao criar paciente:", error);
-      // Se tentar criar repetido agora, o backend vai travar e mostrar isto!
-      alert(`Erro: ${error.message || "Verifique se o CPF já está cadastrado."}`);
-    }
+    // 2. Chama o POST no backend
+    await patientService.create(dadosTratados);
+
+    // 3. Sucesso: fecha o modal e atualiza a tabela
+    setIsModalOpen(false);
+    await refetch();
+    alert("Paciente criado com sucesso!");
   };
 
   return (
@@ -186,6 +232,34 @@ export function PatientListContainer() {
           />
         </div>
         
+        {/* Olhinho: mostra/oculta nome e CPF na tabela */}
+        <button
+          type="button"
+          onClick={() => setShowSensitive((v) => !v)}
+          aria-pressed={showSensitive}
+          aria-label={showSensitive ? "Ocultar nome e CPF" : "Mostrar nome e CPF"}
+          title={showSensitive ? "Ocultar nome e CPF" : "Mostrar nome e CPF"}
+          className={`w-10 h-10 shrink-0 border rounded-full flex items-center justify-center transition-all shadow-sm cursor-pointer active:scale-95 ${
+            showSensitive
+              ? "bg-primary border-primary text-white hover:bg-primary-dark"
+              : "bg-white border-gray-300 text-gray-500 hover:border-primary hover:text-primary"
+          }`}
+        >
+          {showSensitive ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+              <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+              <path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+              <line x1="2" y1="2" x2="22" y2="22" />
+            </svg>
+          )}
+        </button>
+
         <button 
           onClick={() => setIsModalOpen(true)}
           className="w-10 h-10 shrink-0 bg-white border border-primary rounded-full flex items-center justify-center text-primary transition-all shadow-sm cursor-pointer hover:bg-primary hover:text-white active:scale-95"

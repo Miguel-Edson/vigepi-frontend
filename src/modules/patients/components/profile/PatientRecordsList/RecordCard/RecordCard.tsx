@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { formatDate } from "@/utils/formatters";
 import { RecordAPI } from "@/modules/records/types/record";
 
 interface RecordCardProps {
@@ -10,11 +11,23 @@ interface RecordCardProps {
 export function RecordCard({ record, isActive = false }: RecordCardProps) {
   // Função que define qual a rota correta baseada no agravo da ficha
   const getFichaRoute = (agravo: string) => {
-    if (agravo?.toLowerCase().includes("gestante")) {
-      return `/pacientes/${record.patient?.id}/fichas/ficha-gestante`;
+    // Garante que o ID do paciente existe antes de construir a rota
+    const patientId = record.patient?.id || "sem-id-paciente";
+    const baseUrl = `/pacientes/${patientId}/fichas`;
+
+    // Converte a string para minúsculas para evitar falhas por capitalização
+    const agravoNormalizado = agravo?.toLowerCase() || "";
+
+    if (agravoNormalizado.includes("gestacional")) {
+      return `${baseUrl}/ficha-gestacional/${record.id}`;
+    } 
+    
+    if (agravoNormalizado.includes("congênita") || agravoNormalizado.includes("congenita")) {
+      return `${baseUrl}/ficha-congenita/${record.id}`;
     }
-    // Caso padrão ou Sífilis Adquirida
-    return `/pacientes/${record.patient?.id}/fichas/ficha-adquirida`;
+
+    // Fallback padrão para Adquirida
+    return `${baseUrl}/ficha-adquirida/${record.id}`;
   };
 
   return (
@@ -65,14 +78,14 @@ export function RecordCard({ record, isActive = false }: RecordCardProps) {
           <div className="col-span-12 md:col-span-3 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Data da Notificação *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {record.dataNotificacao || "-"}
+              {formatDate(record.dataNotificacao) || "-"}
             </div>
           </div>
 
           <div className="col-span-12 md:col-span-3 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Data do Diagnóstico *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {record.dataDiagnostico || "-"}
+              {formatDate(record.dataDiagnostico) || "-"}
             </div>
           </div>
 

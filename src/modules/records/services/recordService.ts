@@ -1,7 +1,8 @@
-import { apiFetch } from '@/lib/api';
+import { apiFetch, ApiError } from '@/lib/api';
 // Ajuste os imports dos DTOs conforme o que você tem no seu arquivo de types
-import { RecordAPI, CreateRecordDTO, UpdateRecordDTO, AddObservationDTO } from '../types/record'; 
-
+import { RecordAPI, CreateRecordDTO, UpdateRecordDTO, AddObservationDTO, ObservationAPI } from '../types/record'; 
+import { extractObservations } from '@/modules/records/observations/normalize';
+import { MonitoramentoGestanteAPI, CreateMonitoramentoDTO } from "@/modules/records/types/monitoring";
 export const recordService = {
   
   // 1. POST: Criar ficha de notificação (Requer ADM)
@@ -19,14 +20,31 @@ export const recordService = {
     });
   },
 
-  // 3. GET (TRUQUE FRONTEND): Buscar fichas e filtrar por paciente
+  // 3. GET: Buscar as fichas de UM paciente (o filtro acontece no servidor)
+  //    Contrato esperado do backend: GET /record/patient/:patientId -> RecordAPI[]
+  //    (devolver [] quando o paciente não tem fichas, e não 404)
   async getRecordsByPatientId(patientId: string): Promise<RecordAPI[]> {
-    const allRecords = await apiFetch<RecordAPI[]>('/record/all', {
-      method: 'GET',
-    });
-    
-    // Filtra localmente. Certifique-se de que a estrutura do retorno possui patient.id
-    return allRecords.filter((record) => record.patient?.id === patientId);
+    try {
+      return await apiFetch<RecordAPI[]>(`/record/patient/${patientId}`, {
+        method: 'GET',
+      });
+    } catch (error) {
+      // TEMPORÁRIO: só cai no comportamento antigo se a ROTA ainda não existe no backend
+      // (o NestJS responde "Cannot GET ..."). Remover assim que o endpoint for publicado,
+      // porque o fallback volta a trazer as fichas de todos os pacientes para o navegador.
+      const rotaInexistente =
+        error instanceof ApiError &&
+        error.status === 404 &&
+        error.message.startsWith('Cannot GET');
+
+      if (!rotaInexistente) throw error;
+
+      console.warn(
+        '[SIMOS] /record/patient/:id não existe no backend; usando fallback que busca TODAS as fichas.'
+      );
+      const allRecords = await apiFetch<RecordAPI[]>('/record/all', { method: 'GET' });
+      return allRecords.filter((record) => record.patient?.id === patientId);
+    }
   },
 
   // 4. GET: Buscar ficha por ID
@@ -58,4 +76,77 @@ export const recordService = {
       body: JSON.stringify(data),
     });
   },
+
+  // 7.1 GET: Listar as observações clínicas de uma ficha (mais recentes primeiro)
+  async listObservations(id: string): Promise<ObservationAPI[]> {
+    try {
+      return extractObservations(await apiFetch<unknown>(`/record/${id}/observations`, { method: 'GET' }));
+    } catch (error) {
+      // Se a rota GET não existe no backend ("Cannot GET ..."), tenta as observações que
+      // vierem embutidas na própria ficha. Qualquer outro erro é repassado.
+      const rotaInexistente =
+        error instanceof ApiError && error.status === 404 && error.message.startsWith('Cannot GET');
+      if (!rotaInexistente) throw error;
+
+      const record = await apiFetch<{ observations?: unknown }>(`/record/${id}`, { method: 'GET' });
+      return extractObservations(record?.observations);
+    }
+  },
+
+  // ==========================================================================
+  // ROTAS DE MONITORAMENTO (ACOMPANHAMENTO)
+  // ==========================================================================
+
+  /**
+   * 1. GET: Listar todos os monitoramentos de uma ficha específica
+   * Swagger: GET /records/{tipo}/{fichaId}/monitoramentos
+   */
+  async getMonitoramentosByRecordId(tipo: string, fichaId: string): Promise<MonitoramentoGestanteAPI[]> {
+    return apiFetch<MonitoramentoGestanteAPI[]>(`/records/${tipo}/${fichaId}/monitoramentos`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * 2. POST: Criar um novo registro de monitoramento para a ficha
+   * Swagger: POST /records/{tipo}/{fichaId}/monitoramentos
+   */
+  async createMonitoramento(tipo: string, fichaId: string, data: CreateMonitoramentoDTO): Promise<MonitoramentoGestanteAPI> {
+    return apiFetch<MonitoramentoGestanteAPI>(`/records/${tipo}/${fichaId}/monitoramentos`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * 3. GET: Detalhar um monitoramento específico pelo seu ID
+   * Swagger: GET /monitoramentos/{id}
+   */
+  async getMonitoramentoById(id: string): Promise<MonitoramentoGestanteAPI> {
+    return apiFetch<MonitoramentoGestanteAPI>(`/monitoramentos/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * 4. PATCH: Atualizar os dados de um monitoramento específico
+   * Swagger: PATCH /monitoramentos/{id}
+   */
+  async updateMonitoramento(id: string, data: Partial<CreateMonitoramentoDTO>): Promise<MonitoramentoGestanteAPI> {
+    return apiFetch<MonitoramentoGestanteAPI>(`/monitoramentos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * 5. DELETE: Remover um monitoramento (Soft Delete)
+   * Swagger: DELETE /monitoramentos/{id}
+   */
+  async deleteMonitoramento(id: string): Promise<void> {
+    return apiFetch<void>(`/monitoramentos/${id}`, {
+      method: 'DELETE',
+    });
+  }
 };
+

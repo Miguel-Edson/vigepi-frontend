@@ -2,7 +2,7 @@
 import { UseFormRegisterReturn } from "react-hook-form";
 
 interface InputFieldProps {
-  label: string;
+  label?: string;
   placeholder?: string;
   type?: string;
   error?: string;
@@ -14,7 +14,7 @@ interface InputFieldProps {
 export function InputField({ label, placeholder, type = "text", error, disabled, register, className }: InputFieldProps) {
   return (
     <div className={`space-y-1 ${className}`}>
-      <label className="text-form-label pl-1">{label}</label>
+      {label && <label className="text-form-label pl-1">{label}</label>}
       <input
         type={type}
         placeholder={placeholder}

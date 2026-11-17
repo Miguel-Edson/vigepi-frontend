@@ -53,7 +53,7 @@ export function Navbar() {
         
       </div>
       <div className="bg-white px-12">
-        <h2 className="text-base text-primary">Sistema de Monitoramento de Sífilis em Sobral</h2>
+        <h2 className="text-base text-primary">Sistema de Monitoramento de Sífilis - Sobral</h2>
       </div>
     </header>
   );

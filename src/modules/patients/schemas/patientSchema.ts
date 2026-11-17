@@ -6,8 +6,6 @@ export const novaFichaSchema = z.object({
   nome: z.string().min(3, "Obrigatório"),
   dataNascimento: z.string().min(10, "Obrigatório"),
   cns: z.string().min(1, "Obrigatório"),
-  idade: z.string().optional(),
-  unidadeIdade: z.string().optional(), 
   sexo: z.enum(Sexo, { message: "Obrigatório" }),
   gestante: z.enum(Gestante).optional(),
   raca: z.enum(Raca).optional(),
@@ -32,6 +30,9 @@ export const novaFichaSchema = z.object({
   zona: z.enum(ZonaResidencia, { message: "Obrigatório" }),
   
   pais: z.string().min(1, "Obrigatório"),
+  }).refine((dados) => !(dados.gestante === Gestante.SIM && dados.sexo !== Sexo.FEMININO), {
+  path: ["gestante"],
+  message: "Apenas para sexo feminino",
 });
 
 export type NovaFichaForm = z.infer<typeof novaFichaSchema>;
