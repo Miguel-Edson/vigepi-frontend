@@ -69,8 +69,10 @@ export function PatientListContainer() {
     const safeRecords = records || [];
 
     return patients.map((patient) => {
+      // Corrigido o 'any' por uma checagem de tipo explícita e segura
       const belongsToPatient = (r: (typeof safeRecords)[number]) =>
-        (r.patient && r.patient.id === patient.id) || (r as any).pacienteId === patient.id;
+        (r.patient && r.patient.id === patient.id) || 
+        ("pacienteId" in r && (r as { pacienteId?: string }).pacienteId === patient.id);
 
       const patientRecords = safeRecords.filter(belongsToPatient);
       const patientRecord = patientRecords[0];
@@ -182,7 +184,9 @@ export function PatientListContainer() {
   }, [filteredPatients, currentPage]);
 
   const handleCreatePatient = async (dadosNovos: NovaFichaForm) => {
-    const { ibge, ...dadosValidos } = dadosNovos;
+    // Removido o 'ibge' da desestruturação para evitar variável não utilizada
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { ibge: _, ...dadosValidos } = dadosNovos;
 
     const dadosTratados = {
       ...dadosValidos,
@@ -282,7 +286,7 @@ export function PatientListContainer() {
       </div>
 
       {/* Renderização da Tabela com os dados paginados */}
-      <div className="border-t border-gray-100 p-4 min-h-[300px]">
+      <div className="border-t border-gray-100 p-4 min-h-75">
         {isLoading ? (
           <div className="h-full flex items-center justify-center text-sm text-gray-400">Carregando dados...</div>
         ) : error ? (
