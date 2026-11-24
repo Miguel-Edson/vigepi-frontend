@@ -22,11 +22,11 @@ const ITEMS_PER_PAGE = 10; // Quantidade de itens por página
 // 1. Array base (sem as contagens, elas serão dinâmicas agora)
 const BASE_TABS = [
   { id: "todas", label: "Todas" },
-  { id: "Dose Atrasada", label: "Dose Atrasada" },
-  { id: "Tratamento Finalizado", label: "Tratamento Finalizado" },
-  { id: "Descontinuado", label: "Descontinuado" },
   { id: "Aguardando Exame", label: "Aguardando Exame" }, 
   { id: "gestantes", label: "Gestantes" }, 
+  { id: "Dose Atrasada", label: "Dose Atrasada" },
+  { id: "Descontinuado", label: "Descontinuado" },
+  { id: "Tratamento Finalizado", label: "Tratamento Finalizado" },
   { id: "sem-ficha", label: "Sem Ficha (Pendentes)" }, 
 ];
 

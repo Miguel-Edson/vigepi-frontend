@@ -22,11 +22,22 @@ export type PacienteTabela = {
 
 // Alerta de proximidade da próxima dose (cor + símbolo, para não depender só da cor)
 const DOSE_ALERT_STYLE = {
-  late: { pill: "bg-red-600 text-white", text: "text-red-700 font-semibold", symbol: "⚠ " },
-  urgent: { pill: "bg-red-100 text-red-700 ring-1 ring-red-300", text: "text-red-700 font-semibold", symbol: "⚠ " },
-  normal: { pill: "bg-emerald-50 text-emerald-700", text: "text-gray-500", symbol: "" },
+  late: { 
+    pill: "bg-red-600 text-white", 
+    text: "text-red-700 font-semibold", 
+    symbol: "⚠ " 
+  },
+  urgent: { 
+    pill: "bg-amber-100 text-amber-800 ring-1 ring-amber-300", // Fundo amarelo/âmbar chamativo
+    text: "text-amber-800 font-semibold", 
+    symbol: "⏰ " // Símbolo de relógio para perto de vencer
+  },
+  normal: { 
+    pill: "bg-emerald-50 text-emerald-700", 
+    text: "text-emerald-700 font-medium", 
+    symbol: "✓ " // Um símbolo discreto de ok para mostrar que está em dia
+  },
 } as const;
-
 // Valores mostrados no lugar do nome e do CPF quando o "olhinho" está fechado
 const MASK_NOME = "••••••••••";
 const MASK_CPF = "•••.•••.•••-••";
