@@ -68,6 +68,7 @@ export default function LoginPage() {
       {/* --- COLUNA ESQUERDA: IMAGEM --- */}
       <div className="relative hidden lg:block w-full">
         <Image
+          sizes="100vw"
           src="/images/wallpaper.jpg" 
           alt="Profissional de saúde a segurar a mão de um paciente"
           fill

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useController, Control, FieldValues, Path } from "react-hook-form";
 
 interface SelectFieldProps<T extends FieldValues = FieldValues> {
-  label: string;
+  label?: string;
   options: { value: string; label: string }[];
   error?: string;
   value?: string;
@@ -65,7 +65,7 @@ export function SelectField<T extends FieldValues = FieldValues>({
 
   return (
     <div className={`space-y-1 ${className || ""}`} ref={dropdownRef}>
-      <label className="text-form-label pl-1 text-xs text-gray-600 font-medium">{label}</label>
+      {label && <label className="text-form-label pl-1 text-xs text-gray-600 font-medium">{label}</label>}
       
       <div className="relative">
         {/* O "Input" Falso (Botão que abre a caixa) */}

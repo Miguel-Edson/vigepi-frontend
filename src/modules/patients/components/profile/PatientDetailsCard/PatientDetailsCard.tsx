@@ -1,6 +1,7 @@
 "use client";
 
 import { PatientAPI } from "@/modules/patients/types/patient";
+import { formatDate } from "@/utils/formatters";
 
 interface PatientDetailsCardProps {
   patient: PatientAPI;
@@ -29,7 +30,7 @@ export function PatientDetailsCard({ patient }: PatientDetailsCardProps) {
           <div className="col-span-12 md:col-span-3 space-y-1">
             <label className="text-xs text-gray-500 font-medium pl-1">Data de Nascimento *</label>
             <div className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-md flex items-center text-sm text-gray-800">
-              {patient.dataNascimento || "-"}
+              {formatDate(patient.dataNascimento) || "-"}
             </div>
           </div>
 
