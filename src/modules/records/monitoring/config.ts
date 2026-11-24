@@ -10,6 +10,12 @@ import { Agravo } from "@/modules/records/types/record";
  */
 export const DOSE_INTERVAL_DAYS = 7;
 
+/**
+ * Alerta visual na listagem: faltando ESTE número de dias (ou menos) para a próxima dose,
+ * o paciente aparece em vermelho. Dose já vencida aparece em vermelho forte.
+ */
+export const DOSE_ALERT_DAYS = 2;
+
 /** Doses por tratamento (colunas dose1..dose3 no backend). */
 export const DOSES_PER_TREATMENT = 3;
 

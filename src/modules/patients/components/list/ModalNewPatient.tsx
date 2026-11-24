@@ -22,13 +22,13 @@ export function ModalNewPatient({ isOpen, onClose, patientData, onSaveAction }: 
   
 const handleAutoFill = () => {
     reset({
-      nome: "Paciente de Teste Automático",
+      nome: "",
       dataNascimento: "1995-08-20",
       cns: "700000000000090", // 15 dígitos
-      sexo: Sexo.MASCULINO,
+      sexo: Sexo.FEMININO,
       gestante: Gestante.NAO,
       raca: Raca.PARDA,
-      cpf: "953.328.140-54",
+      cpf: "",
       nomeDaMae: "Maria da Silva Teste",
       escolaridade: Escolaridade.MEDIO_COMPLETO,
       

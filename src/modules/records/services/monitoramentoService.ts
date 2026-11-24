@@ -32,10 +32,10 @@ export const monitoramentoService = {
 
   /**
    * GET /monitoramentos/resumo — uma linha por ficha com as colunas de dose
-   * (ver BACKEND_CHECKLIST.md, seção 5). Se a rota ainda não existe, devolve [] e a
-   * listagem continua funcionando com o status manual da ficha.
+   * (ver BACKEND_CHECKLIST.md, seção 5). Devolve null quando a rota não existe ou falha;
+   * aí o hook useTreatmentSummaries busca ficha por ficha (mais lento) como plano B.
    */
-  async getResumo(): Promise<MonitoramentoResumo[]> {
+  async getResumo(): Promise<MonitoramentoResumo[] | null> {
     try {
       return await apiFetch<MonitoramentoResumo[]>("/monitoramentos/resumo", { method: "GET" });
     } catch (error) {
@@ -45,7 +45,7 @@ export const monitoramentoService = {
           "GET /monitoramentos/:id e tenta ler 'resumo' como UUID) ou foi declarada DEPOIS do @Get(':id').",
         error
       );
-      return [];
+      return null; // "indisponível" (diferente de [] = disponível e vazio): quem chama usa o plano B
     }
   },
 };

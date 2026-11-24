@@ -16,8 +16,16 @@ export type PacienteTabela = {
   tipoFicha: string;
   status: string; // Depois vamos transformar isso para lidar com as bolinhas coloridas
   statusDetalhe?: string;
+  proximaDose?: { date: string; urgency: "late" | "urgent" | "normal"; when: string };
   dpp?: { text: string; title?: string; pending?: boolean };
 };
+
+// Alerta de proximidade da próxima dose (cor + símbolo, para não depender só da cor)
+const DOSE_ALERT_STYLE = {
+  late: { pill: "bg-red-600 text-white", text: "text-red-700 font-semibold", symbol: "⚠ " },
+  urgent: { pill: "bg-red-100 text-red-700 ring-1 ring-red-300", text: "text-red-700 font-semibold", symbol: "⚠ " },
+  normal: { pill: "bg-emerald-50 text-emerald-700", text: "text-gray-500", symbol: "" },
+} as const;
 
 // Valores mostrados no lugar do nome e do CPF quando o "olhinho" está fechado
 const MASK_NOME = "••••••••••";
@@ -39,12 +47,34 @@ export function getColumns({ showSensitive }: { showSensitive: boolean }): Colum
     {
       accessorKey: "nome",
       header: "Nome",
-      cell: ({ row }) => (showSensitive ? row.original.nome : MASK_NOME),
+      cell: ({ row }) => {
+        const nome = row.original.nome;
+        const textoExibido = showSensitive ? nome : MASK_NOME;
+        return (
+          <div 
+            className="w-40 truncate" 
+            title={showSensitive ? nome : undefined}
+          >
+            {textoExibido}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "cpf",
       header: "CPF",
-      cell: ({ row }) => (showSensitive ? row.original.cpf : MASK_CPF),
+      cell: ({ row }) => {
+        const cpf = row.original.cpf;
+        const textoExibido = showSensitive ? cpf : MASK_CPF;
+        return (
+          <div 
+            className="w-24 truncate text-gray-600"
+            title={showSensitive ? cpf : undefined}
+          >
+            {textoExibido}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "unidade",
@@ -62,11 +92,20 @@ export function getColumns({ showSensitive }: { showSensitive: boolean }): Colum
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        const { status, statusDetalhe, dpp } = row.original;
+        const { status, statusDetalhe, dpp, proximaDose } = row.original;
+        const alert = proximaDose ? DOSE_ALERT_STYLE[proximaDose.urgency] : undefined;
         return (
           <div>
             <span className="font-medium">{status === "sem-ficha" ? "Sem ficha" : status}</span>
-            {statusDetalhe && <span className="block text-xs text-gray-500">{statusDetalhe}</span>}
+            {statusDetalhe && (
+              <span className={`block text-xs ${alert?.text ?? "text-gray-500"}`}>{statusDetalhe}</span>
+            )}
+            {proximaDose && alert && (
+              <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${alert.pill}`}>
+                {alert.symbol}
+                {proximaDose.when}
+              </span>
+            )}
             {dpp && (
               <span
                 title={dpp.title}

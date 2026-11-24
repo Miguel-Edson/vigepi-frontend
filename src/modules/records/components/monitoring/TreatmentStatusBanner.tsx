@@ -1,7 +1,7 @@
 "use client";
 
 import { DOSE_INTERVAL_DAYS } from "@/modules/records/monitoring/config";
-import type { TreatmentStatus, TreatmentStatusKind } from "@/modules/records/monitoring/treatment";
+import { describeDaysUntil, getDoseUrgency, type TreatmentStatus, type TreatmentStatusKind } from "@/modules/records/monitoring/treatment";
 import { formatDate } from "@/utils/formatters";
 
 const STYLE: Record<TreatmentStatusKind, { box: string; dot: string }> = {
@@ -13,18 +13,13 @@ const STYLE: Record<TreatmentStatusKind, { box: string; dot: string }> = {
   obito: { box: "bg-gray-100 border-gray-300 text-gray-800", dot: "bg-gray-700" },
 };
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-
-function relative(days: number | null): string {
-  if (days === null) return "";
-  if (days === 0) return "hoje";
-  if (days === 1) return "amanhã";
-  if (days > 1) return `em ${days} dias`;
-  return `${plural(Math.abs(days), "dia", "dias")} de atraso`;
-}
+const relative = (days: number | null) => (days === null ? "" : describeDaysUntil(days));
 
 export function TreatmentStatusBanner({ status }: { status: TreatmentStatus }) {
-  const style = STYLE[status.kind];
+  // Dose próxima (ou vencida) destaca em vermelho, igual à listagem de pacientes
+  const isUrgent =
+    status.kind === "em_tratamento" && status.daysUntilNext !== null && getDoseUrgency(status.daysUntilNext) === "urgent";
+  const style = isUrgent ? STYLE.dose_atrasada : STYLE[status.kind];
 
   return (
     <div className={`border rounded-xl p-5 flex flex-col gap-1 ${style.box}`} role="status">

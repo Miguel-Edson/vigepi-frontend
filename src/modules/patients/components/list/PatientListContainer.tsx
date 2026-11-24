@@ -8,7 +8,7 @@ import { ModalNewPatient } from "./ModalNewPatient"
 import { usePatients } from "@/modules/patients/hooks/usePatients";
 import { useRecords } from "@/modules/records/hooks/useRecords";
 import { useTreatmentSummaries } from "@/modules/records/hooks/useTreatmentSummaries";
-import { getListStatus } from "@/modules/records/monitoring/listStatus";
+import { getListStatus, STATUS_EM_TRATAMENTO } from "@/modules/records/monitoring/listStatus";
 import { getDppInfo } from "@/modules/records/monitoring/gestational";
 import { Agravo } from "@/modules/records/types/record";
 import { agravoToTipo, hasTreatments } from "@/modules/records/monitoring/config";
@@ -17,6 +17,8 @@ import type { NovaFichaForm } from "@/modules/patients/schemas/patientSchema";
 import { Gestante } from "@/modules/patients/types/patient";
 import { latestTimestamp, pickTimestamp } from "@/utils/timestamps";
 
+const ITEMS_PER_PAGE = 10; // Quantidade de itens por página
+
 // 1. Array base (sem as contagens, elas serão dinâmicas agora)
 const BASE_TABS = [
   { id: "todas", label: "Todas" },
@@ -24,14 +26,10 @@ const BASE_TABS = [
   { id: "Tratamento Finalizado", label: "Tratamento Finalizado" },
   { id: "Descontinuado", label: "Descontinuado" },
   { id: "Aguardando Exame", label: "Aguardando Exame" }, 
-  { id: "gestantes", label: "Gestantes" }, // filtra por paciente.gestante, não pelo status da ficha
+  { id: "gestantes", label: "Gestantes" }, 
   { id: "sem-ficha", label: "Sem Ficha (Pendentes)" }, 
 ];
 
-
-
-// Decide se uma linha pertence a uma aba. "gestantes" usa o cadastro do paciente;
-// as demais comparam o status da ficha.
 function matchesTab(patient: PatientTable, tabId: string): boolean {
   if (tabId === "todas") return true;
   if (tabId === "gestantes") return patient.gestante;
@@ -42,11 +40,9 @@ export function PatientListContainer() {
   const [activeTab, setActiveTab] = useState("todas");
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // "Olhinho": nome e CPF começam ocultos (privacidade) e o botão alterna
   const [showSensitive, setShowSensitive] = useState(false);
   const columns = useMemo(() => getColumns({ showSensitive }), [showSensitive]);
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 1;
 
   const { 
     patients, 
@@ -61,14 +57,13 @@ export function PatientListContainer() {
     error: errorRecords 
   } = useRecords();
 
-  // Doses de todas as fichas: com elas o status vira "Em Tratamento" + data da próxima dose
-  const dosesByRecord = useTreatmentSummaries();
+  const dosesByRecord = useTreatmentSummaries(records);
 
   const isLoading = loadingPatients || loadingRecords;
   const error = errorPatients || errorRecords;
   const refetch = refetchPatients;
 
-  // 2. Cria a lista formatada principal (Usa useMemo em vez de useEffect para evitar re-renders)
+  // 2. Cria a lista formatada principal
   const formattedPatients: PatientTable[] = useMemo(() => {
     if (!patients) return [];
     const safeRecords = records || [];
@@ -80,9 +75,6 @@ export function PatientListContainer() {
       const patientRecords = safeRecords.filter(belongsToPatient);
       const patientRecord = patientRecords[0];
 
-      // Última atualização: o evento mais recente entre o cadastro/alteração do PACIENTE e TODAS as suas
-      // fichas (criação ou alteração). Sem nenhuma ficha (ou ficha sem data), vale a data do paciente.
-      // Se o resumo de doses trouxer `updatedAt`, ele também conta.
       const ultimaAtt =
         latestTimestamp([
           pickTimestamp(patient, ["updatedAt", "updated_at"]),
@@ -94,8 +86,6 @@ export function PatientListContainer() {
           ]),
         ]) ?? "";
 
-      // DPP: vem da ficha GESTACIONAL (mesmo que a primeira ficha da lista seja de outro tipo)
-      // e só aparece enquanto a paciente estiver marcada como gestante.
       const gestationalRecord = safeRecords.find(
         (r) => belongsToPatient(r) && r.agravo === Agravo.SIFILIS_GESTACIONAL
       );
@@ -107,7 +97,7 @@ export function PatientListContainer() {
       if (patientRecord) {
         const tipo = agravoToTipo(patientRecord.agravo);
         const listStatus = getListStatus(
-          patientRecord.status || "Dose Atrasada", // Assumindo default se vazio
+          patientRecord.status || "Dose Atrasada",
           tipo && hasTreatments(tipo) ? tipo : undefined,
           dosesByRecord[patientRecord.id]
         );
@@ -123,6 +113,7 @@ export function PatientListContainer() {
           tipoFicha: patientRecord.agravo || "N/A",
           status: listStatus.key,
           statusDetalhe: listStatus.detail,
+          proximaDose: listStatus.nextDose,
           dpp,
           gestante: patient.gestante === Gestante.SIM
         };
@@ -143,7 +134,7 @@ export function PatientListContainer() {
     });
   }, [patients, records, dosesByRecord]);
 
-  // 3. Calcula dinamicamente as contagens com base na lista formatada
+  // 3. Calcula dinamicamente as contagens
   const tabsWithCounts = useMemo(() => {
     return BASE_TABS.map(tab => {
       if (tab.id === "todas") {
@@ -156,9 +147,9 @@ export function PatientListContainer() {
     });
   }, [formattedPatients]);
 
-  // 4. Aplica os filtros de aba e barra de pesquisa
-  const tableData = useMemo(() => {
-    return formattedPatients.filter((patient) => {
+  // 4. Aplica os filtros de aba, barra de pesquisa e ordenação (Mais recentes no topo)
+  const filteredPatients = useMemo(() => {
+    const filtered = formattedPatients.filter((patient) => {
       const isInTab = matchesTab(patient, activeTab);
       const matchesSearch = 
         patient.nome.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -166,13 +157,31 @@ export function PatientListContainer() {
       
       return isInTab && matchesSearch;
     });
+
+    // Ordenação: Os criados/atualizados por último ficam no topo (decrescente por ultimaAtt)
+    return [...filtered].sort((a, b) => {
+      if (activeTab === STATUS_EM_TRATAMENTO || activeTab === "Dose Atrasada") {
+        const far = "9999-12-31";
+        const dateA = a.proximaDose?.date ?? far;
+        const dateB = b.proximaDose?.date ?? far;
+        if (dateA !== dateB) {
+          return dateA.localeCompare(dateB);
+        }
+      }
+      // Critério padrão: data mais recente (ultimaAtt maior) vem primeiro
+      return (b.ultimaAtt || "").localeCompare(a.ultimaAtt || "");
+    });
   }, [formattedPatients, activeTab, searchQuery]);
 
-  // Função que vai pegar os dados do modal e mandar para o backend criar!
-  // Não captura erros de propósito: se a API falhar, o ModalNewPatient mostra a mensagem
-  // dentro do formulário e mantém tudo que foi digitado.
+  // 5. Cálculo do Total de Páginas e Fatiamento dos Dados da Página Atual
+  const totalPages = Math.ceil(filteredPatients.length / ITEMS_PER_PAGE) || 1;
+
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredPatients.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredPatients, currentPage]);
+
   const handleCreatePatient = async (dadosNovos: NovaFichaForm) => {
-    // 1. Limpeza dos dados (exatamente como na edição)
     const { ibge, ...dadosValidos } = dadosNovos;
 
     const dadosTratados = {
@@ -183,10 +192,7 @@ export function PatientListContainer() {
       telefone: dadosNovos.telefone?.replace(/\D/g, ''),
     };
 
-    // 2. Chama o POST no backend
     await patientService.create(dadosTratados);
-
-    // 3. Sucesso: fecha o modal e atualiza a tabela
     setIsModalOpen(false);
     await refetch();
     alert("Paciente criado com sucesso!");
@@ -195,7 +201,7 @@ export function PatientListContainer() {
   return (
     <main className="space-y-6 bg-white rounded-xl m-12 pb-6 shadow-sm border border-gray-100">
       
-      {/* Abas de Navegação com as Contagens Dinâmicas */}
+      {/* Abas de Navegação com Contagens Dinâmicas */}
       <div className="flex border-b border-gray-200 gap-2 overflow-x-auto px-4">
         {tabsWithCounts.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -208,7 +214,6 @@ export function PatientListContainer() {
               }`}
             >
               {tab.label} 
-              {/* Bolhinha com o número */}
               <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                 isActive ? "bg-primary text-white" : "bg-gray-100 text-gray-500"
               }`}>
@@ -219,7 +224,7 @@ export function PatientListContainer() {
         })}
       </div>
 
-      {/* Barra de Pesquisa e Botão Adicionar */}
+      {/* Barra de Pesquisa e Botões */}
       <div className="flex w-full items-center justify-center px-5 gap-4">
         <div className="group flex items-center w-full h-10 px-4 gap-2 bg-white border border-gray-300 rounded-xl transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">           
           <span className="text-gray-400 shrink-0 transition-colors group-focus-within:text-primary">
@@ -232,12 +237,11 @@ export function PatientListContainer() {
             type="text"
             placeholder="Pesquisar por nome ou CPF..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
             className="w-full h-full text-black text-sm bg-transparent outline-none placeholder:text-gray-400"
           />
         </div>
         
-        {/* Olhinho: mostra/oculta nome e CPF na tabela */}
         <button
           type="button"
           onClick={() => setShowSensitive((v) => !v)}
@@ -277,33 +281,35 @@ export function PatientListContainer() {
         </button>
       </div>
 
-      {/* Renderização da Tabela */}
+      {/* Renderização da Tabela com os dados paginados */}
       <div className="border-t border-gray-100 p-4 min-h-[300px]">
         {isLoading ? (
           <div className="h-full flex items-center justify-center text-sm text-gray-400">Carregando dados...</div>
         ) : error ? (
           <div className="h-full flex items-center justify-center text-sm text-red-500">{error}</div>
-        ) : tableData.length === 0 ? (
+        ) : paginatedData.length === 0 ? (
            <div className="h-full flex items-center justify-center text-sm text-gray-400">Nenhum paciente encontrado.</div>
         ) : (
-          <DataTable columns={columns} data={tableData} />
+          <DataTable columns={columns} data={paginatedData} />
         )}
       </div>
 
-      {/* Paginação */}
+      {/* Paginação Dinâmica Real */}
       <div className="flex items-center justify-between px-6 pt-4 border-t border-gray-100">
-        <span className="text-sm text-gray-500">Mostrando página {currentPage} de {totalPages}</span>
+        <span className="text-sm text-gray-500">
+          Mostrando página {currentPage} de {totalPages || 1} ({filteredPatients.length} registros)
+        </span>
         <div className="flex gap-2">
           <button 
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage(p => p - 1)}
+            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
             className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             Anterior
           </button>
           <button 
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(p => p + 1)}
+            disabled={currentPage >= totalPages}
+            onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
             className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             Próxima
@@ -315,7 +321,7 @@ export function PatientListContainer() {
       <ModalNewPatient 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSaveAction={handleCreatePatient} // <--- A MÁGICA ACONTECE AQUI
+        onSaveAction={handleCreatePatient}
       />
     </main>
   );

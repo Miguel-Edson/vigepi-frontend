@@ -1,7 +1,7 @@
 import { StatusFicha } from "@/modules/records/types/record";
 import { addDays, diffInDays, isValidISODate, todayISO } from "@/utils/dates";
 import { formatDate } from "@/utils/formatters";
-import { DOSE_INTERVAL_DAYS, DOSES_PER_TREATMENT } from "./config";
+import { DOSE_ALERT_DAYS, DOSE_INTERVAL_DAYS, DOSES_PER_TREATMENT } from "./config";
 
 // Funções puras (sem React nem API): leem as colunas dose{N}dataTrat{M} de um
 // monitoramento e calculam o estado do tratamento e a data da próxima dose.
@@ -137,6 +137,26 @@ export function getTreatmentStatus(
     nextDoseDate: latest.nextDoseDate,
     daysUntilNext: latest.nextDoseDate ? diffInDays(today, latest.nextDoseDate) : null,
   });
+}
+
+// ----------------------------------------------------------------------------
+// Proximidade da próxima dose (alerta visual)
+// ----------------------------------------------------------------------------
+/** late = dose vencida; urgent = faltam DOSE_ALERT_DAYS dias ou menos; normal = com folga. */
+export type DoseUrgency = "late" | "urgent" | "normal";
+
+export function getDoseUrgency(daysUntil: number): DoseUrgency {
+  if (daysUntil < 0) return "late";
+  return daysUntil <= DOSE_ALERT_DAYS ? "urgent" : "normal";
+}
+
+/** "hoje", "amanhã", "em 3 dias" ou "2 dias de atraso". */
+export function describeDaysUntil(days: number): string {
+  if (days === 0) return "hoje";
+  if (days === 1) return "amanhã";
+  if (days > 1) return `em ${days} dias`;
+  const late = Math.abs(days);
+  return `${late} ${late === 1 ? "dia" : "dias"} de atraso`;
 }
 
 // ----------------------------------------------------------------------------
