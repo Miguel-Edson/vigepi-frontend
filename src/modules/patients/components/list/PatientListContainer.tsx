@@ -107,6 +107,36 @@ export function PatientListContainer() {
         return {
           id: patient.id,
           nome: patient.nome,
+          cpf: patient.cpf || "", // <-- Garantindo que seja string
+          ultimaAtt,
+          sinam: patientRecord.numSinan || "Sem Nº SINAN", 
+          unidade: patientRecord.codeUnidadeSaude || "Não informada",
+          bairro: patient.bairro || "Não informado", 
+          tipoFicha: patientRecord.agravo || "N/A",
+          status: listStatus.key,
+          statusDetalhe: listStatus.detail,
+          proximaDose: listStatus.nextDose,
+          dpp,
+          gestante: patient.gestante === Gestante.SIM
+        };
+      } else {
+        return {
+          id: patient.id,
+          nome: patient.nome,
+          cpf: patient.cpf || "", // <-- Garantindo que seja string
+          ultimaAtt,
+          sinam: "Aguardando Ficha", 
+          unidade: "Pendente",
+          bairro: patient.bairro || "Não informado", 
+          tipoFicha: "Nenhuma ficha criada",
+          status: "sem-ficha",
+          gestante: patient.gestante === Gestante.SIM
+        };
+      }
+
+        return {
+          id: patient.id,
+          nome: patient.nome,
           cpf: patient.cpf,
           ultimaAtt,
           sinam: patientRecord.numSinan || "Sem Nº SINAN", 
